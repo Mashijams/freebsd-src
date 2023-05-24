@@ -14,6 +14,7 @@ _.arm64.*
 _.i386.*
 _.powerpc.*
 _.riscv.*
+.DS_STORE
 GPATH
 GRTAGS
 GTAGS
