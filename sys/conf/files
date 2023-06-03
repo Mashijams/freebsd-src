@@ -1293,7 +1293,7 @@ dev/bhnd/cores/chipc/bhnd_chipc_if.m	optional bhnd
 dev/bhnd/cores/chipc/bhnd_sprom_chipc.c	optional bhnd
 dev/bhnd/cores/chipc/bhnd_pmu_chipc.c	optional bhnd
 dev/bhnd/cores/chipc/chipc.c		optional bhnd
-dev/bhnd/cores/chipc/chipc_cfi.c	optional bhnd cfi 
+dev/bhnd/cores/chipc/chipc_cfi.c	optional bhnd cfi
 dev/bhnd/cores/chipc/chipc_gpio.c	optional bhnd gpio
 dev/bhnd/cores/chipc/chipc_slicer.c	optional bhnd cfi | bhnd spibus
 dev/bhnd/cores/chipc/chipc_spi.c	optional bhnd spibus
@@ -3593,6 +3593,8 @@ fs/tmpfs/tmpfs_vnops.c		optional tmpfs
 fs/tmpfs/tmpfs_fifoops.c 	optional tmpfs
 fs/tmpfs/tmpfs_vfsops.c 	optional tmpfs
 fs/tmpfs/tmpfs_subr.c 		optional tmpfs
+fs/squashfs/squashfs_vfsops.c optional squashfs
+fs/squashfs/squashfs_vnops.c  optional squashfs
 gdb/gdb_cons.c			optional gdb
 gdb/gdb_main.c			optional gdb
 gdb/gdb_packet.c		optional gdb
