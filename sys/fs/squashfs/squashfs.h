@@ -277,4 +277,13 @@ struct sqsh_dir_header {
 #endif // SQUASHFS_DEBUG
 #define ERROR(x...)	printf("\n\033[0;31mxfs:\33[0m " x)
 
+typedef enum {
+	SQFS_OK,			// everything fine
+	SQFS_BADFORMAT,		// unsupported file format
+	SQFS_BADVERSION,	// unsupported squashfs version
+	SQFS_BADCOMP,		// unsupported compression method
+	SQFS_UNSUP,			// unsupported feature
+	SQFS_ERR			// error in operation
+} sqsh_err;
+
 #endif
