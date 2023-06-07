@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2023 Raghav Sharma
+ * Copyright (c) 2023 Raghav Sharma <raghav@freebsd.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -269,5 +269,12 @@ struct sqsh_dir_header {
 	uint32_t		start_block;
 	uint32_t		inode_number;
 };
+
+#ifdef SQUASHFS_DEBUG
+#define DEBUG(x...)	printf("\n\033[0;34mxfs:\33[0m " x)
+#else
+#define DEBUG(x...)
+#endif // SQUASHFS_DEBUG
+#define ERROR(x...)	printf("\n\033[0;31mxfs:\33[0m " x)
 
 #endif
