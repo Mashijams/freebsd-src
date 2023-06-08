@@ -63,10 +63,59 @@ static	vfs_statfs_t	squashfs_statfs;
 static	vfs_vget_t		squashfs_vget;
 static	vfs_fhtovp_t	squashfs_fhtovp;
 
+static void
+squashfs_swapendian_sb(struct sqsh_sb *sb)
+{
+	sb->s_magic					=	le32toh(sb->s_magic);
+	sb->inodes					=	le32toh(sb->inodes);
+	sb->mkfs_time				=	le32toh(sb->mkfs_time);
+	sb->block_size				=	le32toh(sb->block_size);
+	sb->fragments				=	le32toh(sb->fragments);
+	sb->compression				=	le16toh(sb->compression);
+	sb->block_log				=	le16toh(sb->block_log);
+	sb->flags					=	le16toh(sb->flags);
+	sb->no_ids					=	le16toh(sb->no_ids);
+	sb->s_major					=	le16toh(sb->s_major);
+	sb->s_minor					=	le16toh(sb->s_minor);
+	sb->root_inode				=	le64toh(sb->root_inode);
+	sb->bytes_used				=	le64toh(sb->bytes_used);
+	sb->id_table_start			=	le64toh(sb->id_table_start);
+	sb->xattr_id_table_start	=	le64toh(sb->xattr_id_table_start);
+	sb->inode_table_start		=	le64toh(sb->inode_table_start);
+	sb->directory_table_start	=	le64toh(sb->directory_table_start);
+	sb->fragment_table_start	=	le64toh(sb->fragment_table_start);
+	sb->lookup_table_start		=	le64toh(sb->lookup_table_start);
+}
+
 static sqsh_err
 squashfs_init(struct sqsh_mount* ump)
 {
-	// implement here
+	/*
+		Initialise superblock of squashfs mount
+		Currently we use an array of disk to allocate
+		structures and verify metadata on read time.
+		This is will change to vfs_() operations once driver
+		successfully compiles.
+    */
+    memcpy(&ump->sb, sqfs_image, sizeof(sqsh_sb));
+	squashfs_swapendian_sb(&ump->sb);
+
+	// Check magic number
+	if (ump->sb.s_magic != SQUASHFS_MAGIC && ump->sb.s_magic != SQUASHFS_MAGIC) {
+		ERROR("Bad superblock magic number");
+		return SQFS_BADFORMAT;
+	}
+
+	// Check for version of mounted fs
+	if (ump->sb.s_major != SQUASHFS_MAJOR || ump->sb.s_minor > SQUASHFS_MINOR) {
+		ERROR("Unsupported version of squashfs is mounted");
+		return SQFS_BADVERSION;
+	}
+
+	// TODO : add checks for compressor, tables, caches
+
+	// Everything fine
+	return SQFS_OK;
 }
 
 // VFS operations
@@ -113,6 +162,7 @@ squashfs_mount(struct mount* mp)
 			ERROR("Wrong squashfs image");
 			break;
 		case SQFS_BADVERSION:
+			ERROR("Squashfs 4.0 to 4.%d is supported", SQUASHFS_MINOR);
 			break;
 		case SQFS_BADCOMP:
 			break;
