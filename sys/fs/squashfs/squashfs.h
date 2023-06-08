@@ -28,8 +28,8 @@
  * $FreeBSD$
  */
 
-#ifndef SQUASHFS_FS
-#define SQUASHFS_FS
+#ifndef SQUASHFS_H
+#define SQUASHFS_H
 
 #define SQUASHFS_MAGIC				0x73717368
 
@@ -271,11 +271,11 @@ struct sqsh_dir_header {
 };
 
 #ifdef SQUASHFS_DEBUG
-#define DEBUG(x...)	printf("\n\033[0;34mxfs:\33[0m " x)
+#define DEBUG(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
 #else
 #define DEBUG(x...)
 #endif // SQUASHFS_DEBUG
-#define ERROR(x...)	printf("\n\033[0;31mxfs:\33[0m " x)
+#define ERROR(x...)	printf("\n\033[0;31msquashfs:\33[0m " x)
 
 typedef enum {
 	SQFS_OK,			// everything fine
@@ -286,4 +286,4 @@ typedef enum {
 	SQFS_ERR			// error in operation
 } sqsh_err;
 
-#endif
+#endif // SQUASHFS_H

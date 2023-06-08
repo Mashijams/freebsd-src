@@ -42,7 +42,7 @@ struct sqsh_mount {
 	struct mount	*um_mountp;
 	struct vnode	*um_vp;
 	struct mtx		*um_lock;
-	struct sqsh_sb	*um_sb;
+	struct sqsh_sb	sb;
 };
 
 static inline

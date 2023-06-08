@@ -50,6 +50,10 @@
 #include <geom/geom.h>
 #include <geom/geom_vfs.h>
 
+#include<fs/squashfs/squashfs.h>
+#include<fs/squashfs/squashfs_bin.h>
+#include<fs/squashfs/squashfs_mount.h>
+
 static	MALLOC_DEFINE(M_SQUASHFSMNT, "SQUASHFS mount", "SQUASHFS mount structure");
 
 static	vfs_mount_t		squashfs_mount;
@@ -59,10 +63,68 @@ static	vfs_statfs_t	squashfs_statfs;
 static	vfs_vget_t		squashfs_vget;
 static	vfs_fhtovp_t	squashfs_fhtovp;
 
+static sqsh_err
+squashfs_init(struct sqsh_mount* ump)
+{
+	// implement here
+}
+
+// VFS operations
 static int
 squashfs_mount(struct mount* mp)
 {
-	return (EOPNOTSUPP);
+	struct sqsh_mount *ump = NULL;
+	char *target;
+	int error, len;
+
+
+	DEBUG("squashfs_mount(mp = %p)\n", mp);
+
+	if (mp->mnt_flag & MNT_ROOTFS) {
+		vfs_mount_error(mp, "Cannot mount root filesystem");
+		return (EOPNOTSUPP);
+	}
+
+	if (mp->mnt_flag & MNT_UPDATE) {
+		vfs_mount_error(mp, "squashfs does not support mount update");
+		return (EOPNOTSUPP);
+	}
+
+	// Get argument
+	error = vfs_getopt(mp->mnt_optnew, "from", (void **)&target, &len);
+	if (error != 0)
+		error = vfs_getopt(mp->mnt_optnew, "target", (void **)&target, &len);
+	if (error || target[len - 1] != '\0') {
+		vfs_mount_error(mp, "Invalid target");
+		return (EINVAL);
+	}
+
+	// Create squashfs mount
+	ump = malloc(sizeof(struct sqsh_mount), M_SQUASHFSMNT,
+	    M_WAITOK | M_ZERO);
+	ump->um_mountp = mp;
+
+	sqsh_err err = squashfs_init(ump);
+
+	switch (err) {
+		case SQFS_OK:
+			break;
+		case SQFS_BADFORMAT:
+			ERROR("Wrong squashfs image");
+			break;
+		case SQFS_BADVERSION:
+			break;
+		case SQFS_BADCOMP:
+			break;
+		default:
+			ERROR("Some unknown error happend while mounting squashfs image");
+	}
+
+	if (err != SQFS_OK)
+		return (EINVAL);
+
+	mp->mnt_data = ump;
+	return (0);
 }
 
 static int
