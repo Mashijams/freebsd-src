@@ -2,7 +2,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  *
  * Copyright (c) 2023 Raghav Sharma <raghav@freebsd.org>
- * All rights reserved.
+ * Parts Copyright (c) 2014 Dave Vasilevsky <dave@vasilevsky.ca>
+ * Obtained from the squashfuse project
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,7 +26,6 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD$
  */
 
 #ifndef SQUASHFS_H
