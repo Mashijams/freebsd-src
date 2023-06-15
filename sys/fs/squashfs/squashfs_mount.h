@@ -33,10 +33,6 @@
 
 #ifdef _KERNEL
 
-#ifdef MALLOC_DECLARE
-MALLOC_DECLARE(M_SQUASHFSMNT);
-#endif
-
 // This structure describes squashfs mount structure data
 struct sqsh_mount {
 	struct mount	*um_mountp;

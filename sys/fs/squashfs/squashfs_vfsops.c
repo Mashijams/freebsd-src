@@ -50,9 +50,9 @@
 #include <geom/geom.h>
 #include <geom/geom_vfs.h>
 
-#include<fs/squashfs/squashfs.h>
-#include<fs/squashfs/squashfs_bin.h>
-#include<fs/squashfs/squashfs_mount.h>
+#include<squashfs.h>
+#include<squashfs_bin.h>
+#include<squashfs_mount.h>
 
 static	MALLOC_DEFINE(M_SQUASHFSMNT, "SQUASHFS mount", "SQUASHFS mount structure");
 
@@ -97,11 +97,11 @@ squashfs_init(struct sqsh_mount* ump)
 		This is will change to vfs_() operations once driver
 		successfully compiles.
     */
-    memcpy(&ump->sb, sqfs_image, sizeof(sqsh_sb));
+    memcpy(&ump->sb, sqfs_image, sizeof(struct sqsh_sb));
 	squashfs_swapendian_sb(&ump->sb);
 
 	// Check magic number
-	if (ump->sb.s_magic != SQUASHFS_MAGIC && ump->sb.s_magic != SQUASHFS_MAGIC) {
+	if (ump->sb.s_magic != SQUASHFS_MAGIC && ump->sb.s_magic != SQUASHFS_MAGIC_SWAP) {
 		ERROR("Bad superblock magic number");
 		return SQFS_BADFORMAT;
 	}

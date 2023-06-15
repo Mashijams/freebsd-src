@@ -44,9 +44,8 @@
 #include <sys/bio.h>
 #include <sys/buf.h>
 
-#include<fs/squashfs/squashfs.h>
-#include<fs/squashfs/squashfs_bin.h>
-#include<fs/squashfs/squashfs_mount.h>
+#include<squashfs.h>
+#include<squashfs_mount.h>
 
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
@@ -209,12 +208,6 @@ squashfs_print(struct vop_print_args *ap)
 	return (EOPNOTSUPP);
 }
 
-static void
-squashfs_revlock(struct vnode *vp, int flags)
-{
-	return (EOPNOTSUPP);
-}
-
 static int
 squashfs_lock(struct vop_lock1_args *ap)
 {
@@ -342,7 +335,6 @@ struct vop_vector squashfs_vnodeops = {
 	.vop_access			=	squashfs_access,
 	.vop_aclcheck		=	squashfs_aclcheck,
 	.vop_advlock		=	squashfs_advlock,
-	.vop_bmap			=	squashfs_bmap,
 	.vop_cachedlookup	=	squashfs_lookup,
 	.vop_close			=	squashfs_close,
 	.vop_closeextattr	=	squashfs_closeextattr,
