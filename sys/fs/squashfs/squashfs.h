@@ -272,9 +272,9 @@ struct sqsh_dir_header {
 };
 
 #ifdef SQUASHFS_DEBUG
-#define DEBUG(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
+#define TRACE(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
 #else
-#define DEBUG(x...)
+#define TRACE(x...)
 #endif // SQUASHFS_DEBUG
 #define ERROR(x...)	printf("\n\033[0;31msquashfs:\33[0m " x)
 

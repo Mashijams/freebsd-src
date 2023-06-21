@@ -53,6 +53,7 @@
 #include<squashfs.h>
 #include<squashfs_bin.h>
 #include<squashfs_mount.h>
+#include<squashfs_inode.h>
 
 static	MALLOC_DEFINE(M_SQUASHFSMNT, "SQUASHFS mount", "SQUASHFS mount structure");
 
@@ -88,6 +89,56 @@ squashfs_swapendian_sb(struct sqsh_sb *sb)
 }
 
 static sqsh_err
+is_valid_superblock(struct sqsh_sb* sb)
+{
+	// Check magic number
+	if (sb->s_magic != SQUASHFS_MAGIC && sb->s_magic != SQUASHFS_MAGIC_SWAP) {
+		ERROR("Bad superblock magic number");
+		return SQFS_BADFORMAT;
+	}
+
+	// Check for version of mounted fs
+	if (sb->s_major != SQUASHFS_MAJOR || sb->s_minor > SQUASHFS_MINOR) {
+		ERROR("Unsupported version of squashfs is mounted");
+		return SQFS_BADVERSION;
+	}
+
+	// Check if filesystem size is not negative for sanity
+	if (sb->bytes_used < 0) {
+		ERROR("Filesystem size is negative!");
+		return SQFS_ERR;
+	}
+
+	// Check block size for sanity
+	if (sb->block_size > SQUASHFS_FILE_MAX_SIZE) {
+		ERROR("Invalid block size");
+		return SQFS_ERR;
+	}
+
+	// Check block log for sanity
+	if (sb->block_log > SQUASHFS_FILE_MAX_LOG) {
+		ERROR("Invalid block log");
+		return SQFS_ERR;
+	}
+
+	// Check that block_size and block_log match
+	if (sb->block_size != (1 << sb->block_log)) {
+		ERROR("block size and log mismatch");
+		return SQFS_ERR;
+	}
+
+	// Check the root inode for sanity
+	if (SQUASHFS_INODE_OFFSET(sb->root_inode) > SQUASHFS_METADATA_SIZE) {
+		ERROR("invalid root inode size");
+		return SQFS_ERR;
+	}
+
+	// A valid superblock is detected
+	TRACE("A valid superblock is detected");
+	return SQFS_OK;
+}
+
+static sqsh_err
 squashfs_init(struct sqsh_mount* ump)
 {
 	/*
@@ -100,17 +151,10 @@ squashfs_init(struct sqsh_mount* ump)
     memcpy(&ump->sb, sqfs_image, sizeof(struct sqsh_sb));
 	squashfs_swapendian_sb(&ump->sb);
 
-	// Check magic number
-	if (ump->sb.s_magic != SQUASHFS_MAGIC && ump->sb.s_magic != SQUASHFS_MAGIC_SWAP) {
-		ERROR("Bad superblock magic number");
-		return SQFS_BADFORMAT;
-	}
-
-	// Check for version of mounted fs
-	if (ump->sb.s_major != SQUASHFS_MAJOR || ump->sb.s_minor > SQUASHFS_MINOR) {
-		ERROR("Unsupported version of squashfs is mounted");
-		return SQFS_BADVERSION;
-	}
+	// check superblock to see if everything is fine
+	sqsh_err error = is_valid_superblock(&ump->sb);
+	if (error != SQFS_OK)
+		return error;
 
 	// TODO : add checks for compressor, tables, caches
 
@@ -127,7 +171,7 @@ squashfs_mount(struct mount* mp)
 	int error, len;
 
 
-	DEBUG("squashfs_mount(mp = %p)\n", mp);
+	TRACE("squashfs_mount(mp = %p)\n", mp);
 
 	if (mp->mnt_flag & MNT_ROOTFS) {
 		vfs_mount_error(mp, "Cannot mount root filesystem");
@@ -171,10 +215,15 @@ squashfs_mount(struct mount* mp)
 	}
 
 	if (err != SQFS_OK)
-		return (EINVAL);
+		goto failed_mount;
 
 	mp->mnt_data = ump;
 	return (0);
+
+failed_mount:
+	TRACE("Squashfs mount failed");
+	free(ump, M_SQUASHFSMNT);
+	return EINVAL;
 }
 
 static int

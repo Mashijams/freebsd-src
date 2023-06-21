@@ -28,8 +28,8 @@
  * $FreeBSD$
  */
 
-#ifndef SQUASH_FS_MOUNT_H
-#define SQUASH_FS_MOUNT_H
+#ifndef SQUASHFS_MOUNT_H
+#define SQUASHFS_MOUNT_H
 
 #ifdef _KERNEL
 
@@ -51,4 +51,4 @@ MP_TO_SQSH_MOUNT(struct mount *mp)
 
 #endif // _KERNEL
 
-#endif // SQUASH_FS_MOUNT_H
+#endif // SQUASHFS_MOUNT_H

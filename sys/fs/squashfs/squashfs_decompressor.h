@@ -28,9 +28,7 @@
  *
  */
 
-#ifndef SQUASHFS_INODE_H
-#define SQUASHFS_INODE_H
+ #ifndef SQUASHFS_DECOMPRESSOR_H
+ #define SQUASHFS_DECOMPRESSOR_H
 
-#define SQUASHFS_INODE_OFFSET(A)	((unsigned int) ((A) & 0xffff))
-
-#endif // SQUASHFS_INODE_H
+ #endif // SQUASHFS_DECOMPRESSOR_H
