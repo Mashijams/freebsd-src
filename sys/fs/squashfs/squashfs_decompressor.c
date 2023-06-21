@@ -27,3 +27,87 @@
  * SUCH DAMAGE.
  *
  */
+
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/buf.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/libkern.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
+#include<squashfs.h>
+#include<squashfs_mount.h>
+#include<squashfs_inode.h>
+#include<squashfs_decompressor.h>
+
+
+// Support for zlib compressor
+#ifndef SQUASHFS_ZLIB
+
+static const struct sqsh_decompressor sqsh_zlib_decompressor = {
+	.decompressor	=	NULL,
+	.id				=	ZLIB_COMPRESSION,
+	.name			=	"zlib",
+	.supported		=	0
+};
+
+#else
+
+#include <zlib.h>
+
+static sqsh_err zlib_decompressor(void *input, size_t input_size,
+		void *output, size_t *output_size) {
+	uLongf zout = *output_size;
+	int zerr = uncompress((Bytef*)output, &zout, input, input_size);
+	if (zerr != Z_OK)
+		return SQFS_ERR;
+	*output_size = zout;
+	return SQFS_OK;
+}
+
+const struct sqsh_decompressor sqsh_zlib_decompressor = {
+	.decompressor	=	zlib_decompressor,
+	.id				=	ZLIB_COMPRESSION,
+	.name			=	"zlib",
+	.supported		=	1
+};
+
+#endif // SQUASHFS_ZLIB
+
+// Unknown compression type
+static const struct sqsh_decompressor sqsh_unknown_decompressor = {
+	.decompressor	=	NULL,
+	.id				=	0,
+	.name			=	"unknown",
+	.supported		=	0
+};
+
+
+static const struct sqsh_decompressor *decompressor[] = {
+	&sqsh_zlib_decompressor,
+	&sqsh_unknown_decompressor
+};
+
+const struct sqsh_decompressor *sqsh_lookup_decompressor(int id)
+{
+	int i;
+
+	for (i = 0; decompressor[i]->id; i++)
+		if (id == decompressor[i]->id)
+			break;
+
+	return decompressor[i];
+}

@@ -28,7 +28,22 @@
  *
  */
 
- #ifndef SQUASHFS_DECOMPRESSOR_H
- #define SQUASHFS_DECOMPRESSOR_H
+#ifndef SQUASHFS_DECOMPRESSOR_H
+#define SQUASHFS_DECOMPRESSOR_H
 
- #endif // SQUASHFS_DECOMPRESSOR_H
+struct sqsh_decompressor {
+	sqsh_err (*decompressor)(void* input, size_t input_size,
+		void* output, size_t* output_size);
+
+	int		id;
+	char*	name;
+	int		supported;
+};
+
+#ifdef SQUASHFS_ZLIB
+extern const struct sqsh_decompressor sqsh_zlib_decompressor;
+#endif
+
+const struct sqsh_decompressor *sqsh_lookup_decompressor(int id);
+
+#endif // SQUASHFS_DECOMPRESSOR_H

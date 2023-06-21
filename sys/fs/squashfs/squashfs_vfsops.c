@@ -54,6 +54,7 @@
 #include<squashfs_bin.h>
 #include<squashfs_mount.h>
 #include<squashfs_inode.h>
+#include<squashfs_decompressor.h>
 
 static	MALLOC_DEFINE(M_SQUASHFSMNT, "SQUASHFS mount", "SQUASHFS mount structure");
 
@@ -123,13 +124,13 @@ is_valid_superblock(struct sqsh_sb* sb)
 
 	// Check that block_size and block_log match
 	if (sb->block_size != (1 << sb->block_log)) {
-		ERROR("block size and log mismatch");
+		ERROR("Block size and log mismatch");
 		return SQFS_ERR;
 	}
 
 	// Check the root inode for sanity
 	if (SQUASHFS_INODE_OFFSET(sb->root_inode) > SQUASHFS_METADATA_SIZE) {
-		ERROR("invalid root inode size");
+		ERROR("Invalid root inode size");
 		return SQFS_ERR;
 	}
 
@@ -156,7 +157,15 @@ squashfs_init(struct sqsh_mount* ump)
 	if (error != SQFS_OK)
 		return error;
 
-	// TODO : add checks for compressor, tables, caches
+	// Init decompressor for squashfs and check if it is unknown or supported?
+	ump->decompressor = sqsh_lookup_decompressor(ump->sb.compression);
+	if (!ump->decompressor->supported) {
+		ERROR("Filesystem uses \"%s\" compression. This is not supported",
+		       ump->decompressor->name);
+		return SQFS_BADCOMP;
+	}
+
+	// TODO : add checks for tables, caches
 
 	// Everything fine
 	return SQFS_OK;

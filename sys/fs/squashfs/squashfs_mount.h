@@ -35,10 +35,11 @@
 
 // This structure describes squashfs mount structure data
 struct sqsh_mount {
-	struct mount	*um_mountp;
-	struct vnode	*um_vp;
-	struct mtx		*um_lock;
-	struct sqsh_sb	sb;
+	struct mount					*um_mountp;
+	struct vnode					*um_vp;
+	struct mtx						*um_lock;
+	struct sqsh_sb					sb;
+	const struct sqsh_decompressor	*decompressor;
 };
 
 static inline
@@ -48,6 +49,9 @@ MP_TO_SQSH_MOUNT(struct mount *mp)
 	MPASS(mp != NULL && mp->mnt_data != NULL);
 	return (mp->mnt_data);
 }
+
+// Define all accepted compressions
+#define SQUASHFS_ZLIB
 
 #endif // _KERNEL
 
