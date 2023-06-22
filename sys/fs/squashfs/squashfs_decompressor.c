@@ -122,6 +122,38 @@ const struct sqsh_decompressor sqsh_lzma_decompressor = {
 
 #endif // SQUASHFS_LZMA
 
+// lzo decompressor support
+#ifndef SQUASHFS_LZO
+
+static const struct sqsh_decompressor sqsh_lzo_decompressor = {
+	.decompressor	=	NULL,
+	.id				=	LZO_COMPRESSION,
+	.name			=	"lzo",
+	.supported		=	0
+};
+
+#else
+
+#include <lzo/lzo1x.h>
+
+static sqsh_err lzo_decompressor(void *input, size_t input_size,
+		void *output, size_t *output_size) {
+	lzo_uint lzout = *output_size;
+	int err = lzo1x_decompress_safe(input, input_size, output, &lzout, NULL);
+	if (err != LZO_E_OK)
+		return SQFS_ERR;
+	*output_size = lzout;
+	return SQFS_OK;
+}
+
+const struct sqsh_decompressor sqsh_lzo_decompressor = {
+	.decompressor	=	lzo_decompressor,
+	.id				=	LZO_COMPRESSION,
+	.name			=	"lzo",
+	.supported		=	1
+};
+
+#endif // SQUASHFS_LZO
 
 // Unknown compression type
 static const struct sqsh_decompressor sqsh_unknown_decompressor = {
@@ -135,6 +167,7 @@ static const struct sqsh_decompressor sqsh_unknown_decompressor = {
 static const struct sqsh_decompressor *decompressor[] = {
 	&sqsh_zlib_decompressor,
 	&sqsh_lzma_decompressor,
+	&sqsh_lzo_decompressor,
 	&sqsh_unknown_decompressor
 };
 
