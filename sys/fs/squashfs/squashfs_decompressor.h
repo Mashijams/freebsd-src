@@ -52,6 +52,10 @@ extern const struct sqsh_decompressor sqsh_lzma_decompressor;
 extern const struct sqsh_decompressor sqsh_lzo_decompressor;
 #endif
 
+#ifdef SQUASHFS_LZ4
+extern const struct sqsh_decompressor sqsh_lz4_decompressor;
+#endif
+
 const struct sqsh_decompressor *sqsh_lookup_decompressor(int id);
 
 #endif // SQUASHFS_DECOMPRESSOR_H

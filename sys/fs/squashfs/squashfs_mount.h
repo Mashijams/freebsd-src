@@ -54,6 +54,7 @@ MP_TO_SQSH_MOUNT(struct mount *mp)
 #define SQUASHFS_ZLIB
 #define SQUASHFS_LZMA
 #define SQUASHFS_LZO
+#define SQUASHFS_LZ4
 
 #endif // _KERNEL
 
