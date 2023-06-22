@@ -7,5 +7,6 @@ SRCS=	\
 SRCS+=	vnode_if.h
 
 CFLAGS+= -I/usr/include
+CFLAGS+= -I/usr/local/include
 
 .include <bsd.kmod.mk>
