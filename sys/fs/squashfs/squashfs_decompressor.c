@@ -87,6 +87,42 @@ const struct sqsh_decompressor sqsh_zlib_decompressor = {
 
 #endif // SQUASHFS_ZLIB
 
+// lzma decompression support
+#ifndef SQUASHFS_LZMA
+
+static const struct sqsh_decompressor sqsh_lzma_decompressor = {
+	.decompressor	=	NULL,
+	.id				=	LZMA_COMPRESSION,
+	.name			=	"lzma",
+	.supported		=	0
+};
+
+#else
+
+#include <lzma.h>
+
+static sqsh_err lzma_decompressor(void *input, size_t input_size,
+		void *output, size_t *output_size) {
+	uint64_t memlimit = UINT64_MAX;
+	size_t inpos = 0, outpos = 0;
+	lzma_ret err = lzma_stream_buffer_decode(&memlimit, 0, NULL, input, &inpos, input_size,
+		output, &outpos, *output_size);
+	if (err != LZMA_OK)
+		return SQFS_ERR;
+	*output_size = outpos;
+	return SQFS_OK;
+}
+
+const struct sqsh_decompressor sqsh_lzma_decompressor = {
+	.decompressor	=	lzma_decompressor,
+	.id				=	LZMA_COMPRESSION,
+	.name			=	"lzma",
+	.supported		=	1
+};
+
+#endif // SQUASHFS_LZMA
+
+
 // Unknown compression type
 static const struct sqsh_decompressor sqsh_unknown_decompressor = {
 	.decompressor	=	NULL,
@@ -98,6 +134,7 @@ static const struct sqsh_decompressor sqsh_unknown_decompressor = {
 
 static const struct sqsh_decompressor *decompressor[] = {
 	&sqsh_zlib_decompressor,
+	&sqsh_lzma_decompressor,
 	&sqsh_unknown_decompressor
 };
 

@@ -52,6 +52,7 @@ MP_TO_SQSH_MOUNT(struct mount *mp)
 
 // Define all accepted compressions
 #define SQUASHFS_ZLIB
+#define SQUASHFS_LZMA
 
 #endif // _KERNEL
 
