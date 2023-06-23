@@ -84,7 +84,7 @@ sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
 		This is will change to vfs_() operations once driver
 		successfully compiles.
     */
-    memcpy((*block)->data, sqfs_image + pos, sizeof(struct sqsh_sb));
+    memcpy((*block)->data, sqfs_image + pos, size);
 
     // if block is compressed, first decompressed it and then initialize block
 	if (compressed) {
@@ -115,4 +115,41 @@ error:
 void sqsh_free_block(struct sqsh_block *block) {
 	free(block->data);
 	free(block);
+}
+
+sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size,
+	struct sqsh_block **block) {
+	uint16_t hdr;
+	bool compressed;
+	uint16_t size;
+
+	*data_size = 0;
+
+	/*
+		Currently we use an array of disk to allocate
+		structures and verify metadata on read time.
+		This is will change to vfs_() operations once driver
+		successfully compiles.
+    */
+    memcpy(&hdr, sqfs_image + pos, sizeof(hdr));
+
+	pos += sizeof(hdr);
+	*data_size += sizeof(hdr);
+	hdr = le16toh(hdr);
+
+	sqsh_metadata_header(hdr, &compressed, &size);
+
+	sqsh_err err = sqsh_block_read(ump, pos, compressed, size,
+		SQUASHFS_METADATA_SIZE, block);
+	*data_size += size;
+	return err;
+}
+
+sqsh_err sqsh_data_read(struct sqsh_mount *ump, off_t pos,
+	uint32_t hdr, struct sqsh_block **block) {
+	bool compressed;
+	uint32_t size;
+	sqsh_data_header(hdr, &compressed, &size);
+	return sqsh_block_read(ump, pos, compressed, size,
+		ump->sb.block_size, block);
 }
