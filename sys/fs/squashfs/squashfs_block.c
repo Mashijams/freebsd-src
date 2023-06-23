@@ -27,3 +27,92 @@
  * SUCH DAMAGE.
  *
  */
+
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/buf.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/libkern.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
+#include<squashfs.h>
+#include<squashfs_bin.h>
+#include<squashfs_mount.h>
+#include<squashfs_inode.h>
+#include<squashfs_decompressor.h>
+#include<squashfs_block.h>
+
+void sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size) {
+    // Bit is set if block is uncompressed
+    *compressed = !(hdr & SQUASHFS_COMPRESSED_BIT);
+    *size = hdr & ~SQUASHFS_COMPRESSED_BIT;
+    if (!*size)
+        *size = SQUASHFS_COMPRESSED_BIT;
+}
+
+void sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size) {
+    *compressed = !(hdr & SQUASHFS_COMPRESSED_BIT_BLOCK);
+    *size = hdr & ~SQUASHFS_COMPRESSED_BIT_BLOCK;
+}
+
+sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
+    uint32_t size, size_t outsize, struct sqsh_block **block) {
+	sqsh_err err;
+    // allocate block on heap
+    *block = malloc(sizeof(**block));
+	if (*block == NULL)
+		return SQFS_ERR;
+    (*block)->data = malloc(size);
+	if ((*block)->data == NULL)
+		goto error;
+    /*
+		Currently we use an array of disk to allocate
+		structures and verify metadata on read time.
+		This is will change to vfs_() operations once driver
+		successfully compiles.
+    */
+    memcpy((*block)->data, sqfs_image + pos, sizeof(struct sqsh_sb));
+
+    // if block is compressed, first decompressed it and then initialize block
+	if (compressed) {
+		char *decomp = malloc(outsize);
+		if (decomp == NULL)
+			goto error;
+
+		err = ump->decompressor->decompressor((*block)->data, size, decomp, &outsize);
+		if (err != SQFS_OK) {
+			free(decomp);
+			goto error;
+		}
+		free((*block)->data);
+		(*block)->data = decomp;
+		(*block)->size = outsize;
+	} else {
+		(*block)->size = size;
+	}
+
+	return SQFS_OK;
+
+error:
+	sqsh_free_block(*block);
+	*block = NULL;
+	return err;
+}
+
+void sqsh_free_block(struct sqsh_block *block) {
+	free(block->data);
+	free(block);
+}

@@ -45,13 +45,13 @@ struct sqsh_block_run {
 void sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size);
 void sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size);
 
-sqsh_err sqsh_block_read(sqsh_mount *ump, off_t pos, bool compressed, uint32_t size,
-	size_t outsize, sqsh_block **block);
-void sqsh_free_block(sqsh_block *block);
+sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
+	uint32_t size, size_t outsize, struct sqsh_block **block);
+void sqsh_free_block(struct sqsh_block *block);
 
-sqsh_err sqsh_metadata_read(sqsh_mount *ump, off_t pos, size_t *data_size,
-	sqsh_block **block);
-sqsh_err sqsh_data_read(sqsh_mount *ump, off_t pos, uint32_t hdr,
-	sqsh_block **block);
+sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size,
+	struct sqsh_block **block);
+sqsh_err sqsh_data_read(struct sqsh_mount *ump, off_t pos, uint32_t hdr,
+	struct sqsh_block **block);
 
 #endif // SQUASHFS_BLOCK_H

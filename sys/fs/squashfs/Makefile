@@ -2,7 +2,8 @@ KMOD=	squashfs
 SRCS=	\
 	squashfs_vfsops.c \
 	squashfs_vnops.c \
-	squashfs_decompressor.c
+	squashfs_decompressor.c \
+	squashfs_block.c
 
 SRCS+=	vnode_if.h
 
