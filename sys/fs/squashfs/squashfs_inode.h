@@ -33,12 +33,6 @@
 
 #define SQUASHFS_INODE_OFFSET(A)	((unsigned int) ((A) & 0xffff))
 
-// this struct handles tables which contains inodes, inode ID and fragments
-struct sqsh_table {
-	size_t		each;
-	uint64_t	*blocks;
-};
-
 // helper functions to query on table
 sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
 	off_t start, size_t each, size_t count);

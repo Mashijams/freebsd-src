@@ -139,6 +139,11 @@ is_valid_superblock(struct sqsh_sb* sb)
 	return SQFS_OK;
 }
 
+bool sqsh_export_ok(struct sqsh_mount *ump) {
+	return ump->sb.lookup_table_start != SQUASHFS_INVALID_BLK;
+}
+
+
 static sqsh_err
 squashfs_init(struct sqsh_mount* ump)
 {
@@ -165,7 +170,26 @@ squashfs_init(struct sqsh_mount* ump)
 		return SQFS_BADCOMP;
 	}
 
-	// TODO : add checks for tables, caches
+	error = sqsh_init_table(&ump->id_table, ump, ump->sb.id_table_start,
+		sizeof(uint32_t), ump->sb.no_ids);
+	if (error != SQFS_OK)
+		return error;
+
+	error = sqsh_init_table(&ump->frag_table, ump, ump->sb.fragment_table_start,
+		sizeof(struct sqsh_fragment_entry), ump->sb.fragments);
+	if (error != SQFS_OK)
+		return error;
+
+	if (sqsh_export_ok(ump)) {
+		error = sqsh_init_table(&ump->export_table, ump, ump->sb.lookup_table_start,
+			sizeof(uint64_t), ump->sb.inodes);
+		if (error != SQFS_OK)
+			return error;
+	}
+
+	TRACE("Table init() passed!");
+
+	// TODO : add checks for caches after implementing it
 
 	// Everything fine
 	return SQFS_OK;

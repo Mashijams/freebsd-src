@@ -271,6 +271,18 @@ struct sqsh_dir_header {
 	uint32_t		inode_number;
 };
 
+struct sqsh_fragment_entry {
+	uint64_t		start_block;
+	uint32_t		size;
+	uint32_t		unused;
+};
+
+// This struct handles tables which contains inodes, inode ID and fragments
+struct sqsh_table {
+	size_t		each;
+	uint64_t	*blocks;
+};
+
 #ifdef SQUASHFS_DEBUG
 #define TRACE(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
 #else
