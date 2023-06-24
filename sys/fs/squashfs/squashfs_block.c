@@ -153,3 +153,11 @@ sqsh_err sqsh_data_read(struct sqsh_mount *ump, off_t pos,
 	return sqsh_block_read(ump, pos, compressed, size,
 		ump->sb.block_size, block);
 }
+
+// This is a normal ceil function
+size_t sqsh_ceil(uint64_t total, size_t group) {
+	size_t ans = (size_t)(total / group);
+	if (total % group)
+		ans += 1;
+	return ans;
+}

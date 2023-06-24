@@ -27,3 +27,84 @@
  * SUCH DAMAGE.
  *
  */
+
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/buf.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/libkern.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
+#include<squashfs.h>
+#include<squashfs_bin.h>
+#include<squashfs_mount.h>
+#include<squashfs_inode.h>
+#include<squashfs_decompressor.h>
+#include<squashfs_block.h>
+
+sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
+	off_t start, size_t each, size_t count) {
+	size_t i;
+	size_t nblocks, bread;
+
+	if (count == 0)
+		return SQFS_OK;
+
+	nblocks = sqsh_ceil(each * count, SQUASHFS_METADATA_SIZE);
+	bread = nblocks * sizeof(uint64_t);
+
+	table->each = each;
+	table->blocks = malloc(bread);
+	if (table->blocks == NULL)
+		return SQFS_ERR;
+
+	/*
+		Currently we use an array of disk to allocate
+		structures and verify metadata on read time.
+		This is will change to vfs_() operations once driver
+		successfully compiles.
+    */
+	memcpy(table->blocks, sqfs_image + start, bread);
+
+	// SwapEndian data to host
+	for (i = 0; i < nblocks; ++i)
+		table->blocks[i] = le64toh(table->blocks[i]);
+
+	return SQFS_OK;
+}
+
+void sqsh_free_table(struct sqsh_table *table) {
+	free(table->blocks);
+	table->blocks = NULL;
+}
+
+sqsh_err sqsh_get_table(struct sqsh_table *table, struct sqsh_mount *ump,
+	size_t idx, void *buf) {
+	struct sqsh_block *block;
+	size_t pos = idx * table->each;
+	size_t bnum = pos / SQUASHFS_METADATA_SIZE;
+	size_t off = pos % SQUASHFS_METADATA_SIZE;
+
+	off_t bpos = table->blocks[bnum];
+	size_t data_size = 0;
+	if (sqsh_metadata_read(ump, bpos, &data_size, &block))
+		return SQFS_ERR;
+
+	memcpy(buf, (char*)(block->data) + off, table->each);
+	// Free block since currently we have no cache
+	sqsh_free_block(block);
+	return SQFS_OK;
+}

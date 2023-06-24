@@ -54,4 +54,7 @@ sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size
 sqsh_err sqsh_data_read(struct sqsh_mount *ump, off_t pos, uint32_t hdr,
 	struct sqsh_block **block);
 
+// Number of groups of size "group" required to hold size "total"
+size_t sqsh_ceil(uint64_t total, size_t group);
+
 #endif // SQUASHFS_BLOCK_H
