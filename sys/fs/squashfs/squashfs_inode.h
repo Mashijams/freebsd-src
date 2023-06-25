@@ -90,11 +90,13 @@ uint64_t sqsh_root_inode(struct sqsh_mount *ump);
 sqsh_err sqsh_init_reg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 sqsh_err sqsh_init_lreg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 sqsh_err sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
+sqsh_err sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 
 // Swapendian functions for all types of inodes
 void swapendian_base_inode(sqsh_base_inode *temp);
 void swapendian_reg_inode(sqsh_reg_inode *temp);
 void swapendian_lreg_inode(sqsh_lreg_inode *temp);
 void swapendian_dir_inode(sqsh_dir_inode *temp);
+void swapendian_ldir_inode(sqsh_dir_inode *temp);
 
 #endif // SQUASHFS_INODE_H

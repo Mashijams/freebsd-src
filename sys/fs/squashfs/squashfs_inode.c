@@ -208,6 +208,12 @@ sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				return err;
 			break;
 		}
+		case SQUASHFS_LDIR_TYPE: {
+			err = sqsh_init_ldir_inode(ump, inode);
+			if (err != SQFS_OK)
+				return err;
+			break;
+		}
 
 		default: return SQFS_ERR;
 	}
@@ -268,6 +274,25 @@ sqsh_err sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
 	return SQFS_OK;
 }
 
+sqsh_err sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
+	struct sqsh_ldir_inode temp;
+	sqsh_err err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return err;
+	swapendian_ldir_inode(&temp);
+
+	// initialise inode dir fields
+	inode->nlink					=	temp.nlink;
+	inode->xtra.dir.start_block 	=	temp.start_block;
+	inode->xtra.dir.offset			=	temp.offset;
+	inode->xtra.dir.dir_size		=	temp.file_size;
+	inode->xtra.dir.idx_count		=	temp.i_count;
+	inode->xtra.dir.parent_inode	=	temp.parent_inode;
+	inode->xattr					=	temp.xattr;
+
+	return SQFS_OK;
+}
+
 void swapendian_base_inode(sqsh_base_inode *temp) {
 	temp->inode_type	=	le16toh(temp->inode_type);
 	temp->mode			=	le16toh(temp->mode);
@@ -318,4 +343,20 @@ void swapendian_dir_inode(sqsh_dir_inode *temp) {
 	temp->file_size		=	le16toh(temp->file_size);
 	temp->offset		=	le16toh(temp->offset);
 	temp->parent_inode	=	le32toh(temp->parent_inode);
+}
+
+void swapendian_ldir_inode(sqsh_dir_inode *temp) {
+	temp->inode_type	=	le16toh(temp->inode_type);
+	temp->mode			=	le16toh(temp->mode);
+	temp->uid			=	le16toh(temp->uid);
+	temp->gid			=	le16toh(temp->gid);
+	temp->mtime			=	le32toh(temp->mtime);
+	temp->inode_number	=	le32toh(temp->inode_number);
+	temp->nlink			=	le32toh(temp->nlink);
+	temp->file_size		=	le32toh(temp->file_size);
+	temp->start_block	=	le32toh(temp->start_block);
+	temp->parent_inode	=	le32toh(temp->parent_inode);
+	temp->i_count		=	le16toh(temp->i_count);
+	temp->offset		=	le16toh(temp->offset);
+	temp->xattr			=	le32toh(temp->xattr);
 }
