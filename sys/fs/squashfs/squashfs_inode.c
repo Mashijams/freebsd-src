@@ -242,9 +242,13 @@ sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				return err;
 			break;
 		}
-
-
-
+		case SQUASHFS_LSOCKET_TYPE:
+		case SQUASHFS_LFIFO_TYPE: {
+			err = sqsh_init_lipc_inode(ump, inode);
+			if (err != SQFS_OK)
+				return err;
+			break;
+		}
 		default: return SQFS_ERR;
 	}
 
@@ -383,6 +387,18 @@ sqsh_err sqsh_init_ipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
 
 	// initialise inode nlink field
 	inode->nlink			=	le32toh(temp.nlink);
+	return SQFS_OK;
+}
+
+sqsh_err sqsh_init_lipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
+	struct sqsh_lipc_inode temp;
+	sqsh_err err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return err;
+
+	// initialise inode nlink field
+	inode->nlink			=	le32toh(temp.nlink);
+	inode->xattr			=	le32toh(temp.xattr);
 	return SQFS_OK;
 }
 
