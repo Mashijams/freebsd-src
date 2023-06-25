@@ -221,6 +221,14 @@ sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				return err;
 			break;
 		}
+		case SQUASHFS_BLKDEV_TYPE:
+		case SQUASHFS_CHRDEV_TYPE: {
+			err = sqsh_init_dev_inode(ump, inode);
+			if (err != SQFS_OK)
+				return err;
+			break;
+		}
+
 
 		default: return SQFS_ERR;
 	}
@@ -307,8 +315,27 @@ sqsh_err sqsh_init_symlink_inode(struct sqsh_mount *ump, struct sqsh_inode *inod
 		return err;
 
 	// initialise inode dir fields
-	inode->nlink					=	le32toh(temp.nlink);
-	inode->xtra.symlink_size		=	le32toh(temp.symlink_size);
+	inode->nlink				=	le32toh(temp.nlink);
+	inode->xtra.symlink_size	=	le32toh(temp.symlink_size);
+
+	return SQFS_OK;
+}
+
+sqsh_err sqsh_init_dev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
+	struct sqsh_dev_inode temp;
+	sqsh_err err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return err;
+
+	// initialise inode nlink fields
+	inode->nlink			=	le32toh(temp.nlink);
+
+	// swapendian() rdev
+	temp.rdev				=	le32toh(temp.rdev);
+
+	// decode rdev
+	inode->xtra.dev.major	=	(temp.rdev >> 8) & 0xfff;
+	inode->xtra.dev.minor	=	(temp.rdev & 0xff) | ((temp.rdev >> 12) & 0xfff00);
 
 	return SQFS_OK;
 }
