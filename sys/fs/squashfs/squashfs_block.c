@@ -154,6 +154,38 @@ sqsh_err sqsh_data_read(struct sqsh_mount *ump, off_t pos,
 		ump->sb.block_size, block);
 }
 
+sqsh_err sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run
+	*cur, void *buf, size_t size) {
+	off_t pos = cur->block;
+	while (size > 0) {
+		struct sqsh_block *block;
+		size_t take;
+		size_t data_size = 0;
+		sqsh_err err = sqsh_metadata_read(ump, pos, &data_size, &block);
+		if (err != SQFS_OK)
+			return err;
+
+		take = block->size - cur->offset;
+		if (take > size)
+			take = size;
+		if (buf)
+			memcpy(buf, (char*)block->data + cur->offset, take);
+
+		// Free block since currently we have no cache
+		sqsh_free_block(block);
+
+		if (buf)
+			buf = (char*)buf + take;
+		size -= take;
+		cur->offset += take;
+		if (cur->offset == block->size) {
+			cur->block = pos;
+			cur->offset = 0;
+		}
+	}
+	return SQFS_OK;
+}
+
 // This is a normal ceil function
 size_t sqsh_ceil(uint64_t total, size_t group) {
 	size_t ans = (size_t)(total / group);
