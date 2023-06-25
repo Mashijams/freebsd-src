@@ -91,6 +91,7 @@ sqsh_err sqsh_init_reg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 sqsh_err sqsh_init_lreg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 sqsh_err sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 sqsh_err sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
+sqsh_err sqsh_init_symlink_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 
 // Swapendian functions for all types of inodes
 void swapendian_base_inode(sqsh_base_inode *temp);

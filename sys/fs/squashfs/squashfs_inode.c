@@ -214,6 +214,13 @@ sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				return err;
 			break;
 		}
+		case SQUASHFS_SYMLINK_TYPE:
+		case SQUASHFS_LSYMLINK_TYPE: {
+			err = sqsh_init_symlink_inode(ump, inode);
+			if (err != SQFS_OK)
+				return err;
+			break;
+		}
 
 		default: return SQFS_ERR;
 	}
@@ -289,6 +296,19 @@ sqsh_err sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) 
 	inode->xtra.dir.idx_count		=	temp.i_count;
 	inode->xtra.dir.parent_inode	=	temp.parent_inode;
 	inode->xattr					=	temp.xattr;
+
+	return SQFS_OK;
+}
+
+sqsh_err sqsh_init_symlink_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
+	struct sqsh_symlink_inode temp;
+	sqsh_err err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return err;
+
+	// initialise inode dir fields
+	inode->nlink					=	le32toh(temp.nlink);
+	inode->xtra.symlink_size		=	le32toh(temp.symlink_size);
 
 	return SQFS_OK;
 }
