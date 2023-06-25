@@ -31,7 +31,38 @@
 #ifndef SQUASHFS_INODE_H
 #define SQUASHFS_INODE_H
 
+#include <stdbool.h>
+#include <squashfs_block.h>
+
 #define SQUASHFS_INODE_OFFSET(A)	((unsigned int) ((A) & 0xffff))
+
+struct sqsh_inode {
+	struct sqsh_base_inode base;
+	int nlink;
+	uint32_t xattr;
+
+	struct sqsh_block_run next;
+
+	union {
+		struct {
+			int major, minor;
+		} dev;
+		size_t symlink_size;
+		struct {
+			uint64_t start_block;
+			uint64_t file_size;
+			uint32_t frag_idx;
+			uint32_t frag_off;
+		} reg;
+		struct {
+			uint32_t start_block;
+			uint16_t offset;
+			uint32_t dir_size;
+			uint16_t idx_count;
+			uint32_t parent_inode;
+		} dir;
+	} xtra;
+};
 
 // helper functions to query on table
 sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
@@ -39,5 +70,20 @@ sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
 void sqsh_free_table(struct sqsh_table *table);
 sqsh_err sqsh_get_table(struct sqsh_table *table, struct sqsh_mount *ump,
 	size_t idx, void *buf);
+
+// helper functions to query on inode
+void sqsh_metadata_run_inode(struct sqsh_block_run *cur, uint64_t id,
+	off_t base);
+sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	uint64_t id);
+
+mode_t sqsh_mode(int inode_type);
+
+sqsh_err sqsh_get_inode_id(struct sqsh_mount *ump, uint16_t idx, uint32_t *id);
+
+bool sqsh_export_ok(struct sqsh_mount *ump);
+sqsh_err sqsh_export_inode(struct sqsh_mount *ump, uint32_t n, uint64_t *i);
+
+uint64_t sqsh_root_inode(struct sqsh_mount *ump);
 
 #endif // SQUASHFS_INODE_H

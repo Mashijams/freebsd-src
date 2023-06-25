@@ -108,3 +108,66 @@ sqsh_err sqsh_get_table(struct sqsh_table *table, struct sqsh_mount *ump,
 	sqsh_free_block(block);
 	return SQFS_OK;
 }
+
+bool sqsh_export_ok(struct sqsh_mount *ump) {
+	return ump->sb.lookup_table_start != SQUASHFS_INVALID_BLK;
+}
+
+void sqsh_metadata_run_inode(struct sqsh_block_run *cur, uint64_t id, off_t base) {
+	cur->block = (id >> 16) + base;
+	cur->offset = id & 0xffff;
+}
+
+mode_t sqsh_mode(int inode_type) {
+	switch (inode_type) {
+		case SQUASHFS_DIR_TYPE:
+		case SQUASHFS_LDIR_TYPE:
+			return S_IFDIR;
+		case SQUASHFS_REG_TYPE:
+		case SQUASHFS_LREG_TYPE:
+			return S_IFREG;
+		case SQUASHFS_SYMLINK_TYPE:
+		case SQUASHFS_LSYMLINK_TYPE:
+			return S_IFLNK;
+		case SQUASHFS_BLKDEV_TYPE:
+		case SQUASHFS_LBLKDEV_TYPE:
+			return S_IFBLK;
+		case SQUASHFS_CHRDEV_TYPE:
+		case SQUASHFS_LCHRDEV_TYPE:
+			return S_IFCHR;
+		case SQUASHFS_FIFO_TYPE:
+		case SQUASHFS_LFIFO_TYPE:
+			return S_IFIFO;
+		case SQUASHFS_SOCKET_TYPE:
+		case SQUASHFS_LSOCKET_TYPE:
+			return S_IFSOCK;
+	}
+	return 0;
+}
+
+sqsh_err sqsh_get_inode_id(struct sqsh_mount *ump, uint16_t idx, uint32_t *id) {
+	uint32_t rid;
+	sqsh_err err = sqsh_get_table(&ump->id_table, ump, idx, &rid);
+	if (err != SQFS_OK)
+		return err;
+	rid = le32toh(rid);
+	*id = rid;
+	return SQFS_OK;
+}
+
+sqsh_err sqsh_export_inode(struct sqsh_mount *ump, uint32_t n, uint64_t *i) {
+	uint64_t r;
+	if (!sqsh_export_ok(ump))
+		return SQFS_ERR;
+
+	sqsh_err err = sqsh_get_table(&ump->export_table, ump, n - 1, &r);
+	if (err)
+		return err;
+	r = le64toh(r);
+	*i = r;
+	return SQFS_OK;
+}
+
+uint64_t sqsh_root_inode(struct sqsh_mount *ump) {
+	return ump->sb.root_inode;
+}

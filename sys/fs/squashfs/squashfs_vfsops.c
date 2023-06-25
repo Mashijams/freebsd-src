@@ -139,11 +139,6 @@ is_valid_superblock(struct sqsh_sb* sb)
 	return SQFS_OK;
 }
 
-bool sqsh_export_ok(struct sqsh_mount *ump) {
-	return ump->sb.lookup_table_start != SQUASHFS_INVALID_BLK;
-}
-
-
 static sqsh_err
 squashfs_init(struct sqsh_mount* ump)
 {
