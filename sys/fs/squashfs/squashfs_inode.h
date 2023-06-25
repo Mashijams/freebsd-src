@@ -86,4 +86,7 @@ sqsh_err sqsh_export_inode(struct sqsh_mount *ump, uint32_t n, uint64_t *i);
 
 uint64_t sqsh_root_inode(struct sqsh_mount *ump);
 
+// Swapendian functions for all types of inodes
+void swapendian_base_inode(sqsh_base_inode *base);
+
 #endif // SQUASHFS_INODE_H

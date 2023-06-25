@@ -171,3 +171,36 @@ sqsh_err sqsh_export_inode(struct sqsh_mount *ump, uint32_t n, uint64_t *i) {
 uint64_t sqsh_root_inode(struct sqsh_mount *ump) {
 	return ump->sb.root_inode;
 }
+
+sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	uint64_t id) {
+	struct sqsh_block_run cur;
+
+	// initialise all inode fields to 0
+	memset(inode, 0, sizeof(*inode));
+	inode->xattr = SQUASHFS_INVALID_XATTR;
+
+	sqsh_metadata_run_inode(&cur, id, ump->sb.inode_table_start);
+	inode->next = cur;
+
+	sqsh_err err = sqsh_metadata_get(ump, &cur, &inode->base, sizeof(inode->base));
+	if (err != SQFS_OK)
+		return err;
+	swapendian_base_inode(&inode->base);
+	inode->base.mode |= sqfs_mode(inode->base.inode_type);
+
+	switch (inode->base.inode_type) {
+		default : return SQFS_ERR;
+	}
+
+	return SQFS_OK;
+}
+
+void swapendian_base_inode(sqsh_base_inode *base) {
+	base->inode_type	=	le16toh(base->inode_type);
+	base->mode			=	le16toh(base->mode);
+	base->uid			=	le16toh(base->uid);
+	base->gid			=	le16toh(base->gid);
+	base->mtime			=	le32toh(base->mtime);
+	base->inode_number	=	le32toh(base->inode_number);
+}
