@@ -55,6 +55,8 @@
 #include<squashfs_decompressor.h>
 #include<squashfs_block.h>
 
+static	MALLOC_DEFINE(M_SQUASHFSTABLEBLK, "SQUASHFS tab blk", "SQUASHFS table block");
+
 sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
 	off_t start, size_t each, size_t count) {
 	size_t i;
@@ -67,7 +69,7 @@ sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
 	bread = nblocks * sizeof(uint64_t);
 
 	table->each = each;
-	table->blocks = malloc(bread);
+	table->blocks = malloc(bread, M_SQUASHFSTABLEBLK, M_WAITOK);
 	if (table->blocks == NULL)
 		return SQFS_ERR;
 
@@ -87,7 +89,7 @@ sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
 }
 
 void sqsh_free_table(struct sqsh_table *table) {
-	free(table->blocks);
+	free(table->blocks, M_SQUASHFSTABLEBLK);
 	table->blocks = NULL;
 }
 
@@ -187,7 +189,7 @@ sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	if (err != SQFS_OK)
 		return err;
 	swapendian_base_inode(&inode->base);
-	inode->base.mode |= sqfs_mode(inode->base.inode_type);
+	inode->base.mode |= sqsh_mode(inode->base.inode_type);
 
 	switch (inode->base.inode_type) {
 		case SQUASHFS_REG_TYPE: {
@@ -402,20 +404,20 @@ sqsh_err sqsh_init_lipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) 
 	return SQFS_OK;
 }
 
-void swapendian_base_inode(sqsh_base_inode *temp) {
+void swapendian_base_inode(struct sqsh_base_inode *temp) {
 	temp->inode_type	=	le16toh(temp->inode_type);
 	temp->mode			=	le16toh(temp->mode);
 	temp->uid			=	le16toh(temp->uid);
-	temp->gid			=	le16toh(temp->gid);
+	temp->guid			=	le16toh(temp->guid);
 	temp->mtime			=	le32toh(temp->mtime);
 	temp->inode_number	=	le32toh(temp->inode_number);
 }
 
-void swapendian_reg_inode(sqsh_reg_inode *temp) {
+void swapendian_reg_inode(struct sqsh_reg_inode *temp) {
 	temp->inode_type	=	le16toh(temp->inode_type);
 	temp->mode			=	le16toh(temp->mode);
 	temp->uid			=	le16toh(temp->uid);
-	temp->gid			=	le16toh(temp->gid);
+	temp->guid			=	le16toh(temp->guid);
 	temp->mtime			=	le32toh(temp->mtime);
 	temp->inode_number	=	le32toh(temp->inode_number);
 	temp->start_block	=	le32toh(temp->start_block);
@@ -424,11 +426,11 @@ void swapendian_reg_inode(sqsh_reg_inode *temp) {
 	temp->file_size		=	le32toh(temp->file_size);
 }
 
-void swapendian_lreg_inode(sqsh_lreg_inode *temp) {
+void swapendian_lreg_inode(struct sqsh_lreg_inode *temp) {
 	temp->inode_type	=	le16toh(temp->inode_type);
 	temp->mode			=	le16toh(temp->mode);
 	temp->uid			=	le16toh(temp->uid);
-	temp->gid			=	le16toh(temp->gid);
+	temp->guid			=	le16toh(temp->guid);
 	temp->mtime			=	le32toh(temp->mtime);
 	temp->inode_number	=	le32toh(temp->inode_number);
 	temp->start_block	=	le64toh(temp->start_block);
@@ -440,11 +442,11 @@ void swapendian_lreg_inode(sqsh_lreg_inode *temp) {
 	temp->xattr			=	le32toh(temp->xattr);
 }
 
-void swapendian_dir_inode(sqsh_dir_inode *temp) {
+void swapendian_dir_inode(struct sqsh_dir_inode *temp) {
 	temp->inode_type	=	le16toh(temp->inode_type);
 	temp->mode			=	le16toh(temp->mode);
 	temp->uid			=	le16toh(temp->uid);
-	temp->gid			=	le16toh(temp->gid);
+	temp->guid			=	le16toh(temp->guid);
 	temp->mtime			=	le32toh(temp->mtime);
 	temp->inode_number	=	le32toh(temp->inode_number);
 	temp->start_block	=	le32toh(temp->start_block);
@@ -454,11 +456,11 @@ void swapendian_dir_inode(sqsh_dir_inode *temp) {
 	temp->parent_inode	=	le32toh(temp->parent_inode);
 }
 
-void swapendian_ldir_inode(sqsh_dir_inode *temp) {
+void swapendian_ldir_inode(struct sqsh_ldir_inode *temp) {
 	temp->inode_type	=	le16toh(temp->inode_type);
 	temp->mode			=	le16toh(temp->mode);
 	temp->uid			=	le16toh(temp->uid);
-	temp->gid			=	le16toh(temp->gid);
+	temp->guid			=	le16toh(temp->guid);
 	temp->mtime			=	le32toh(temp->mtime);
 	temp->inode_number	=	le32toh(temp->inode_number);
 	temp->nlink			=	le32toh(temp->nlink);

@@ -55,6 +55,9 @@
 #include<squashfs_decompressor.h>
 #include<squashfs_block.h>
 
+static	MALLOC_DEFINE(M_SQUASHFSBLOCK, "SQUASHFS block", "SQUASHFS block structure");
+static	MALLOC_DEFINE(M_SQUASHFSBLOCKD, "SQUASHFS block data", "SQUASHFS block data buffer");
+
 void sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size) {
     // Bit is set if block is uncompressed
     *compressed = !(hdr & SQUASHFS_COMPRESSED_BIT);
@@ -72,10 +75,10 @@ sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
     uint32_t size, size_t outsize, struct sqsh_block **block) {
 	sqsh_err err;
     // allocate block on heap
-    *block = malloc(sizeof(**block));
+    *block = malloc(sizeof(**block), M_SQUASHFSBLOCK, M_WAITOK);
 	if (*block == NULL)
 		return SQFS_ERR;
-    (*block)->data = malloc(size);
+    (*block)->data = malloc(size, M_SQUASHFSBLOCKD, M_WAITOK);
 	if ((*block)->data == NULL)
 		goto error;
     /*
@@ -88,16 +91,16 @@ sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
 
     // if block is compressed, first decompressed it and then initialize block
 	if (compressed) {
-		char *decomp = malloc(outsize);
+		char *decomp = malloc(outsize, M_SQUASHFSBLOCKD, M_WAITOK);
 		if (decomp == NULL)
 			goto error;
 
 		err = ump->decompressor->decompressor((*block)->data, size, decomp, &outsize);
 		if (err != SQFS_OK) {
-			free(decomp);
+			free(decomp, M_SQUASHFSBLOCKD);
 			goto error;
 		}
-		free((*block)->data);
+		free((*block)->data, M_SQUASHFSBLOCKD);
 		(*block)->data = decomp;
 		(*block)->size = outsize;
 	} else {
@@ -109,12 +112,12 @@ sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
 error:
 	sqsh_free_block(*block);
 	*block = NULL;
-	return err;
+	return SQFS_ERR;
 }
 
 void sqsh_free_block(struct sqsh_block *block) {
-	free(block->data);
-	free(block);
+	free(block->data, M_SQUASHFSBLOCKD);
+	free(block, M_SQUASHFSBLOCK);
 }
 
 sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size,

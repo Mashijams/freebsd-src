@@ -3,7 +3,8 @@ SRCS=	\
 	squashfs_vfsops.c \
 	squashfs_vnops.c \
 	squashfs_decompressor.c \
-	squashfs_block.c
+	squashfs_block.c \
+	squashfs_inode.c
 
 SRCS+=	vnode_if.h
 
