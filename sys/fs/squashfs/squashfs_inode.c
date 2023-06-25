@@ -190,17 +190,53 @@ sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	inode->base.mode |= sqfs_mode(inode->base.inode_type);
 
 	switch (inode->base.inode_type) {
-		default : return SQFS_ERR;
+		case SQUASHFS_REG_TYPE: {
+			err = sqsh_init_reg_inode(ump, inode);
+			if (err != SQFS_OK)
+				return err;
+		}
+
+		default: return SQFS_ERR;
 	}
 
 	return SQFS_OK;
 }
 
-void swapendian_base_inode(sqsh_base_inode *base) {
-	base->inode_type	=	le16toh(base->inode_type);
-	base->mode			=	le16toh(base->mode);
-	base->uid			=	le16toh(base->uid);
-	base->gid			=	le16toh(base->gid);
-	base->mtime			=	le32toh(base->mtime);
-	base->inode_number	=	le32toh(base->inode_number);
+sqsh_err sqsh_init_reg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
+	struct sqsh_reg_inode temp;
+	sqsh_err err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return err;
+	swapendian_reg_inode(&temp);
+
+	// initialise inode reg fields
+	inode->nlink				=	1;
+	inode->xtra.reg.start_block	=	temp.start_block;
+	inode->xtra.reg.file_size	=	temp.file_size;
+	inode->xtra.reg.frag_idx	=	temp.fragment;
+	inode->xtra.reg.frag_off	=	temp.offset;
+
+	return SQFS_OK;
+}
+
+void swapendian_base_inode(sqsh_base_inode *temp) {
+	temp->inode_type	=	le16toh(temp->inode_type);
+	temp->mode			=	le16toh(temp->mode);
+	temp->uid			=	le16toh(temp->uid);
+	temp->gid			=	le16toh(temp->gid);
+	temp->mtime			=	le32toh(temp->mtime);
+	temp->inode_number	=	le32toh(temp->inode_number);
+}
+
+void swapendian_reg_inode(sqsh_reg_inode *temp) {
+	temp->inode_type	=	le16toh(temp->inode_type);
+	temp->mode			=	le16toh(temp->mode);
+	temp->uid			=	le16toh(temp->uid);
+	temp->gid			=	le16toh(temp->gid);
+	temp->mtime			=	le32toh(temp->mtime);
+	temp->inode_number	=	le32toh(temp->inode_number);
+	temp->start_block	=	le32toh(temp->start_block);
+	temp->fragment		=	le32toh(temp->fragment);
+	temp->offset		=	le32toh(temp->offset);
+	temp->file_size		=	le32toh(temp->file_size);
 }
