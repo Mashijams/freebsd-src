@@ -168,6 +168,8 @@ sqsh_err sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run
 		if (err != SQFS_OK)
 			return err;
 
+		pos += data_size;
+
 		take = block->size - cur->offset;
 		if (take > size)
 			take = size;
