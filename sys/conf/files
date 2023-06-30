@@ -3593,6 +3593,11 @@ fs/tmpfs/tmpfs_vnops.c		optional tmpfs
 fs/tmpfs/tmpfs_fifoops.c 	optional tmpfs
 fs/tmpfs/tmpfs_vfsops.c 	optional tmpfs
 fs/tmpfs/tmpfs_subr.c 		optional tmpfs
+fs/squashfs/squashfs_vfsops.c optional squashfs
+fs/squashfs/squashfs_vnops.c optional squashfs
+fs/squashfs/squashfs_decompressor.c optional squashfs
+fs/squashfs/squashfs_block.c optional squashfs
+fs/squashfs/squashfs_inode.c optional squashfs
 gdb/gdb_cons.c			optional gdb
 gdb/gdb_main.c			optional gdb
 gdb/gdb_packet.c		optional gdb
