@@ -40,7 +40,7 @@ AHC_DEBUG_OPTS		opt_aic7xxx.h
 AHC_REG_PRETTY_PRINT	opt_aic7xxx.h
 AHD_DEBUG		opt_aic79xx.h
 AHD_DEBUG_OPTS		opt_aic79xx.h
-AHD_TMODE_ENABLE	opt_aic79xx.h	
+AHD_TMODE_ENABLE	opt_aic79xx.h
 AHD_REG_PRETTY_PRINT	opt_aic79xx.h
 
 # Debugging options.
@@ -272,6 +272,7 @@ NULLFS		opt_dontuse.h
 PROCFS		opt_dontuse.h
 PSEUDOFS	opt_dontuse.h
 SMBFS		opt_dontuse.h
+SQUASHFS	opt_dontuse.h
 TARFS		opt_dontuse.h
 TMPFS		opt_dontuse.h
 UDF		opt_dontuse.h
@@ -891,7 +892,7 @@ IWN_DEBUG		opt_iwn.h
 # Options for the Intel 3945ABG wireless driver
 WPI_DEBUG		opt_wpi.h
 
-# dcons options 
+# dcons options
 DCONS_BUF_SIZE		opt_dcons.h
 DCONS_POLL_HZ		opt_dcons.h
 DCONS_FORCE_CONSOLE	opt_dcons.h
