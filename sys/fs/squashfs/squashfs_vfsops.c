@@ -300,7 +300,7 @@ squashfs_mount(struct mount* mp)
 		goto failed_mount;
 
 	mp->mnt_data = ump;
-	mp->mnt_stat.f_iosize = SQUASHFS_FILE_SIZE;
+	mp->mnt_stat.f_iosize = SQUASHFS_IO_SIZE;
 
 	// Unconditionally mount squashfs as read only
 	MNT_ILOCK(mp);
@@ -350,7 +350,18 @@ squashfs_unmount(struct mount *mp, int mntflags)
 static int
 squashfs_root(struct mount *mp, int flags, struct vnode **vpp)
 {
-	return (EOPNOTSUPP);
+	struct vnode *nvp;
+	struct sqsh_mount *ump;
+
+	ump = MP_TO_SQSH_MOUNT(mp);
+
+	int error = VFS_VGET(mp, sqsh_root_inode(ump), LK_EXCLUSIVE, &nvp);
+	if (error != 0)
+		return error;
+
+	nvp->v_vflag |= VV_ROOT;
+	*vpp = nvp;
+	return (0);
 }
 
 static int
@@ -360,7 +371,7 @@ squashfs_statfs(struct mount *mp, struct statfs *sbp)
 	ump = MP_TO_SQSH_MOUNT(mp);
 
 	sbp->f_bsize	=	ump->sb.block_size;
-	sbp->f_iosize	=	SQUASHFS_FILE_SIZE
+	sbp->f_iosize	=	SQUASHFS_IO_SIZE;
 	sbp->f_blocks	=	ump->sb.bytes_used / ump->sb.block_size;
 	sbp->f_bfree	=	0;
 	sbp->f_bavail	=	0;

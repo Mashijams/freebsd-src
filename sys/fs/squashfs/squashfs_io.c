@@ -62,15 +62,15 @@ sqsh_err sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop) {
 	off_t off	=	uiop->uio_offset;
 	size_t len	=	uiop->uio_resid;
 
-	rl = vn_rangelock_rlock(ump->vp, off, off + len);
-	int error = vn_lock(ump->vp, LK_SHARED);
+	rl = vn_rangelock_rlock(ump->um_vp, off, off + len);
+	int error = vn_lock(ump->um_vp, LK_SHARED);
 	if (error != 0)
 		return SQFS_ERR;
 
-	error = VOP_READ(ump->vp, uiop, IO_DIRECT|IO_NODELOCKED,
+	error = VOP_READ(ump->um_vp, uiop, IO_DIRECT|IO_NODELOCKED,
 		uiop->uio_td->td_ucred);
 	VOP_UNLOCK(ump->vp);
-	vn_rangelock_unlock(ump->vp, rl);
+	vn_rangelock_unlock(ump->um_vp, rl);
 
 	if (error != 0)
 		return SQFS_ERR;

@@ -57,6 +57,8 @@
 #define SQUASHFS_INVALID_XATTR		(0xffffffffU)
 #define SQUASHFS_INVALID_BLK		((int64_t)-1)
 
+#define SQUASHFS_IO_SIZE			65536
+
 // Filesystem flags
 #define SQUASHFS_NOI				0
 #define SQUASHFS_NOD				1
