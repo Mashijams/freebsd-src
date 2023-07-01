@@ -168,18 +168,18 @@ squashfs_init(struct sqsh_mount* ump)
 	error = sqsh_init_table(&ump->id_table, ump, ump->sb.id_table_start,
 		sizeof(uint32_t), ump->sb.no_ids);
 	if (error != SQFS_OK)
-		return error;
+		goto id_table_fail;
 
 	error = sqsh_init_table(&ump->frag_table, ump, ump->sb.fragment_table_start,
 		sizeof(struct sqsh_fragment_entry), ump->sb.fragments);
 	if (error != SQFS_OK)
-		return error;
+		goto frag_table_fail;
 
 	if (sqsh_export_ok(ump)) {
 		error = sqsh_init_table(&ump->export_table, ump, ump->sb.lookup_table_start,
 			sizeof(uint64_t), ump->sb.inodes);
 		if (error != SQFS_OK)
-			return error;
+			goto export_table_fail;
 	}
 
 	TRACE("Table init() passed!");
@@ -188,15 +188,33 @@ squashfs_init(struct sqsh_mount* ump)
 
 	// Everything fine
 	return SQFS_OK;
+
+id_table_fail:
+	sqsh_table_destroy(&fs->id_table);
+	return error;
+
+frag_table_fail:
+	sqsh_table_destroy(&fs->id_table);
+	sqsh_table_destroy(&fs->frag_table);
+	return error;
+
+export_table_fail:
+	sqsh_table_destroy(&fs->id_table);
+	sqsh_table_destroy(&fs->frag_table);
+	sqsh_table_destroy(&fs->export_table);
+	return error;
 }
 
 // VFS operations
 static int
 squashfs_mount(struct mount* mp)
 {
+	struct nameidata nd;
 	struct sqsh_mount *ump = NULL;
-	char *target;
-	int error, len;
+	struct vnode *vp;
+	struct thread *td = curthread;
+	char *from, *as;
+	int error, len, aslen, flags;
 
 
 	TRACE("squashfs_mount(mp = %p)\n", mp);
@@ -212,18 +230,53 @@ squashfs_mount(struct mount* mp)
 	}
 
 	// Get argument
-	error = vfs_getopt(mp->mnt_optnew, "from", (void **)&target, &len);
-	if (error != 0)
-		error = vfs_getopt(mp->mnt_optnew, "target", (void **)&target, &len);
-	if (error || target[len - 1] != '\0') {
-		vfs_mount_error(mp, "Invalid target");
+	error = vfs_getopt(mp->mnt_optnew, "from", (void **)&from, &len);
+	if (error != 0 || from[len - 1] != '\0')
 		return (EINVAL);
+	error = vfs_getopt(mp->mnt_optnew, "as", (void **)&as, &aslen);
+	if (error || as[aslen - 1] != '\0')
+		as = from;
+
+	// find and initialise squashfs disk file vnode vp
+	NDINIT(&nd, LOOKUP, ISOPEN | FOLLOW | LOCKLEAF, UIO_SYSSPACE, from);
+	error = namei(&nd);
+	if (error != 0)
+		return (error);
+	NDFREE_PNBUF(&nd);
+	vp = nd.ni_vp;
+	// vp is now held and locked
+
+	// open the file
+	flags = FREAD;
+	error = vn_open_vnode(vp, flags, td->td_ucred, td, NULL);
+	if (error != 0) {
+		ERROR("Failed to open squashfs disk file");
+		vput(vp);
+		return error;
+	}
+
+	// check if vnode is of file type (squashfs disk is always of regular file type)
+	if (vp->v_type != VREG) {
+		ERROR("Squashfs disk is not regular file");
+		error = EOPNOTSUPP;
+		VOP_UNLOCK(vp);
+		return error;
+	}
+
+	// check if file is not private
+	error = priv_check(td, PRIV_VFS_MOUNT_PERM);
+	if (error != 0) {
+		ERROR("Squashfs disk is private file");
+		error = EOPNOTSUPP;
+		VOP_UNLOCK(vp);
+		return error;
 	}
 
 	// Create squashfs mount
 	ump = malloc(sizeof(struct sqsh_mount), M_SQUASHFSMNT,
 	    M_WAITOK | M_ZERO);
 	ump->um_mountp = mp;
+	ump->um_vp = vp;
 
 	sqsh_err err = squashfs_init(ump);
 
@@ -246,10 +299,20 @@ squashfs_mount(struct mount* mp)
 		goto failed_mount;
 
 	mp->mnt_data = ump;
+
+	// Unconditionally mount squashfs as read only
+	MNT_ILOCK(mp);
+	mp->mnt_flag |= (MNT_LOCAL | MNT_RDONLY);
+	MNT_IUNLOCK(mp);
+
+	vfs_getnewfsid(mp);
+	vfs_mountedfrom(mp, as);
+	TRACE("Squashfs mount successful");
 	return (0);
 
 failed_mount:
 	TRACE("Squashfs mount failed");
+	(void)vn_close(vp, flags, td->td_ucred, td);
 	free(ump, M_SQUASHFSMNT);
 	return EINVAL;
 }

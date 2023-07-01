@@ -37,7 +37,6 @@
 struct sqsh_mount {
 	struct mount					*um_mountp;
 	struct vnode					*um_vp;
-	struct mtx						*um_lock;
 	struct sqsh_sb					sb;
 	struct sqsh_table				id_table;
 	struct sqsh_table				frag_table;
