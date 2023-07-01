@@ -190,19 +190,20 @@ squashfs_init(struct sqsh_mount* ump)
 	return SQFS_OK;
 
 id_table_fail:
-	sqsh_table_destroy(&fs->id_table);
+	sqsh_table_destroy(&ump->id_table);
 	return error;
 
 frag_table_fail:
-	sqsh_table_destroy(&fs->id_table);
-	sqsh_table_destroy(&fs->frag_table);
+	sqsh_table_destroy(&ump->id_table);
+	sqsh_table_destroy(&ump->frag_table);
 	return error;
 
 export_table_fail:
-	sqsh_table_destroy(&fs->id_table);
-	sqsh_table_destroy(&fs->frag_table);
-	sqsh_table_destroy(&fs->export_table);
+	sqsh_table_destroy(&ump->id_table);
+	sqsh_table_destroy(&ump->frag_table);
+	sqsh_table_destroy(&ump->export_table);
 	return error;
+
 }
 
 // VFS operations
@@ -320,7 +321,29 @@ failed_mount:
 static int
 squashfs_unmount(struct mount *mp, int mntflags)
 {
-	return (EOPNOTSUPP);
+	struct thread *td = curthread;
+	struct sqsh_mount *ump;
+	struct vnode *vp;
+
+	// Handle forced unmounts
+	if (mntflags & MNT_FORCE)
+		flags |= FORCECLOSE;
+
+	ump = MP_TO_SQSH_MOUNT(mp);
+	vp = ump->um_vp;
+
+	// close disk file vnode
+	vn_close(vp, FREAD, td->td_ucred, td);
+
+	// destroy fs internals
+	sqsh_table_destroy(&ump->id_table);
+	sqsh_table_destroy(&ump->frag_table);
+	if (sqsh_export_ok(fs))
+		sqsh_table_destroy(&ump->export_table);
+
+	free(ump, M_SQUASHFSMNT);
+
+	return (0);
 }
 
 static int
