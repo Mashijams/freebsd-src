@@ -26,3 +26,11 @@
  *
  * $FreeBSD$
  */
+
+#ifndef SQUASHFS_IO
+#define SQUASHFS_IO
+
+sqsh_err sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop);
+ssize_t sqsh_io_read_buf(struct sqsh_mount *ump, void *buf, off_t off, size_t len);
+
+#endif // SQUASHFS_IO

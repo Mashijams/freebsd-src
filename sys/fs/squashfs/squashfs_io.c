@@ -26,3 +26,94 @@
  *
  * $FreeBSD$
  */
+
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/buf.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/libkern.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
+#include<squashfs.h>
+#include<squashfs_mount.h>
+#include<squashfs_io.h>
+
+/*
+	Reads data according to the provided uio.
+	This function reads directly from disk file
+	and all decompression reads are handled by seperate
+	functions in squashfs_block.h file.
+*/
+sqsh_err sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop) {
+	void *rl	=	NULL;
+	off_t off	=	uiop->uio_offset;
+	size_t len	=	uiop->uio_resid;
+
+	rl = vn_rangelock_rlock(ump->vp, off, off + len);
+	int error = vn_lock(ump->vp, LK_SHARED);
+	if (error != 0)
+		return SQFS_ERR;
+
+	error = VOP_READ(ump->vp, uiop, IO_DIRECT|IO_NODELOCKED,
+		uiop->uio_td->td_ucred);
+	VOP_UNLOCK(ump->vp);
+	vn_rangelock_unlock(ump->vp, rl);
+
+	if (error != 0)
+		return SQFS_ERR;
+
+	return SQFS_OK;
+}
+
+/*
+	Reads data into the provided buffer.
+	This function reads directly from disk file
+	and all decompression reads are handled by seperate
+	functions in squashfs_block.h file.
+	On succes it return number of bytes read else negative
+	value on failure.
+*/
+ssize_t sqsh_io_read_buf(struct sqsh_mount *ump, void *buf, off_t off, size_t len) {
+	struct uio auio;
+	struct iovec aiov;
+
+	// return success and reading zero bytes of data
+	if (len == 0)
+		return 0;
+
+	// initialize iovec
+	aiov.iov_base	=	buf;
+	aiov.iov_len	=	len;
+
+	// initialize uio
+	auio.uio_iov	=	&aiov;
+	auio.uio_iovcnt	=	1;
+	auio.uio_offset	=	off;
+	auio.uio_segflg	=	UIO_SYSSPACE;
+	auio.uio_rw		=	UIO_READ;
+	auio.uio_resid	=	len;
+	auio.uio_td		=	curthread;
+
+	sqsh_err error	=	sqsh_io_read(tmp, &auio);
+
+	// return negative value on reading failure
+	if (error != SQFS_OK)
+		return -1;
+
+	ssize_t res = len - auio.uio_resid;
+
+	return res;
+}
