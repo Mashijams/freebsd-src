@@ -293,6 +293,8 @@ struct sqsh_fid {
 	uint32_t	gen;
 };
 
+extern struct vop_vector squashfs_vnodeops;
+
 #ifdef SQUASHFS_DEBUG
 #define TRACE(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
 #else

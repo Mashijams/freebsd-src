@@ -189,18 +189,18 @@ squashfs_init(struct sqsh_mount* ump)
 	return SQFS_OK;
 
 id_table_fail:
-	sqsh_table_destroy(&ump->id_table);
+	sqsh_free_table(&ump->id_table);
 	return error;
 
 frag_table_fail:
-	sqsh_table_destroy(&ump->id_table);
-	sqsh_table_destroy(&ump->frag_table);
+	sqsh_free_table(&ump->id_table);
+	sqsh_free_table(&ump->frag_table);
 	return error;
 
 export_table_fail:
-	sqsh_table_destroy(&ump->id_table);
-	sqsh_table_destroy(&ump->frag_table);
-	sqsh_table_destroy(&ump->export_table);
+	sqsh_free_table(&ump->id_table);
+	sqsh_free_table(&ump->frag_table);
+	sqsh_free_table(&ump->export_table);
 	return error;
 
 }
@@ -238,7 +238,7 @@ squashfs_mount(struct mount* mp)
 		as = from;
 
 	// find and initialise squashfs disk file vnode vp
-	NDINIT(&nd, LOOKUP, ISOPEN | FOLLOW | LOCKLEAF, UIO_SYSSPACE, from);
+	NDINIT(&nd, LOOKUP, ISOPEN | FOLLOW | LOCKLEAF, UIO_SYSSPACE, from, td);
 	error = namei(&nd);
 	if (error != 0)
 		return (error);
@@ -324,6 +324,7 @@ squashfs_unmount(struct mount *mp, int mntflags)
 	struct thread *td = curthread;
 	struct sqsh_mount *ump;
 	struct vnode *vp;
+	int flags = FREAD;
 
 	// Handle forced unmounts
 	if (mntflags & MNT_FORCE)
@@ -333,13 +334,13 @@ squashfs_unmount(struct mount *mp, int mntflags)
 	vp = ump->um_vp;
 
 	// close disk file vnode
-	vn_close(vp, FREAD, td->td_ucred, td);
+	vn_close(vp, flags, td->td_ucred, td);
 
 	// destroy fs internals
-	sqsh_table_destroy(&ump->id_table);
-	sqsh_table_destroy(&ump->frag_table);
-	if (sqsh_export_ok(fs))
-		sqsh_table_destroy(&ump->export_table);
+	sqsh_free_table(&ump->id_table);
+	sqsh_free_table(&ump->frag_table);
+	if (sqsh_export_ok(ump))
+		sqsh_free_table(&ump->export_table);
 
 	free(ump, M_SQUASHFSMNT);
 
@@ -413,7 +414,7 @@ squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 
 	vp->v_data = inode;
 	vp->v_type = inode->base.inode_type;
-	tnp->vnode = vp;
+	inode->vnode = vp;
 
 	lockmgr(vp->v_vnlock, lkflags, NULL);
 	error = insmntque(vp, mp);
@@ -426,7 +427,7 @@ squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 	if (error != 0 || *vpp != NULL)
 		return (error);
 
-	vn_set_state(vp, VSTATE_CONSTRUCTED);
+	//vn_set_state(vp, VSTATE_CONSTRUCTED);
 	*vpp = vp;
 	return (0);
 }
@@ -434,7 +435,6 @@ squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 static int
 squashfs_fhtovp(struct mount *mp, struct fid *fhp, int flags, struct vnode **vpp)
 {
-	struct sqsh_inode *inode;
 	struct sqsh_fid *tfp;
 	struct vnode *vp;
 

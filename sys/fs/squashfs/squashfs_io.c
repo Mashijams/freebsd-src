@@ -69,7 +69,7 @@ sqsh_err sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop) {
 
 	error = VOP_READ(ump->um_vp, uiop, IO_DIRECT|IO_NODELOCKED,
 		uiop->uio_td->td_ucred);
-	VOP_UNLOCK(ump->vp);
+	VOP_UNLOCK(ump->um_vp);
 	vn_rangelock_unlock(ump->um_vp, rl);
 
 	if (error != 0)
@@ -107,7 +107,7 @@ ssize_t sqsh_io_read_buf(struct sqsh_mount *ump, void *buf, off_t off, size_t le
 	auio.uio_resid	=	len;
 	auio.uio_td		=	curthread;
 
-	sqsh_err error	=	sqsh_io_read(tmp, &auio);
+	sqsh_err error	=	sqsh_io_read(ump, &auio);
 
 	// return negative value on reading failure
 	if (error != SQFS_OK)
