@@ -51,7 +51,7 @@
 #include <geom/geom_vfs.h>
 
 #include<squashfs.h>
-#include<squashfs_bin.h>
+#include<squashfs_io.h>
 #include<squashfs_mount.h>
 #include<squashfs_inode.h>
 #include<squashfs_decompressor.h>
@@ -143,14 +143,12 @@ is_valid_superblock(struct sqsh_sb* sb)
 static sqsh_err
 squashfs_init(struct sqsh_mount* ump)
 {
-	/*
-		Initialise superblock of squashfs mount
-		Currently we use an array of disk to allocate
-		structures and verify metadata on read time.
-		This is will change to vfs_() operations once driver
-		successfully compiles.
-    */
-    memcpy(&ump->sb, sqfs_image, sizeof(struct sqsh_sb));
+	// squashfs superblock is at offset zero
+	if (sqsh_io_read_buf(ump, &ump->sb, 0, sizeof(struct sqsh_sb)) !=
+			sizeof(struct sqsh_sb)) {
+			ERROR("Failed to read superblock, I/O error");
+			return SQFS_ERR;
+	}
 	squashfs_swapendian_sb(&ump->sb);
 
 	// check superblock to see if everything is fine

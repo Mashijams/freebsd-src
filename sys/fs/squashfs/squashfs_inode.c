@@ -49,7 +49,7 @@
 #include <sys/vnode.h>
 
 #include<squashfs.h>
-#include<squashfs_bin.h>
+#include<squashfs_io.h>
 #include<squashfs_mount.h>
 #include<squashfs_inode.h>
 #include<squashfs_decompressor.h>
@@ -73,13 +73,11 @@ sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
 	if (table->blocks == NULL)
 		return SQFS_ERR;
 
-	/*
-		Currently we use an array of disk to allocate
-		structures and verify metadata on read time.
-		This is will change to vfs_() operations once driver
-		successfully compiles.
-    */
-	memcpy(table->blocks, sqfs_image + start, bread);
+	if (sqsh_io_read_buf(ump, table->blocks, start, bread) != bread) {
+		ERROR("Failed to read data, I/O error");
+		sqsh_free_table(table);
+		return SQFS_ERR;
+	}
 
 	// SwapEndian data to host
 	for (i = 0; i < nblocks; ++i)

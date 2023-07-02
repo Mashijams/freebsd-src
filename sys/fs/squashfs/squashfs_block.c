@@ -49,7 +49,7 @@
 #include <sys/vnode.h>
 
 #include<squashfs.h>
-#include<squashfs_bin.h>
+#include<squashfs_io.h>
 #include<squashfs_mount.h>
 #include<squashfs_inode.h>
 #include<squashfs_decompressor.h>
@@ -81,13 +81,11 @@ sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
     (*block)->data = malloc(size, M_SQUASHFSBLOCKD, M_WAITOK);
 	if ((*block)->data == NULL)
 		goto error;
-    /*
-		Currently we use an array of disk to allocate
-		structures and verify metadata on read time.
-		This is will change to vfs_() operations once driver
-		successfully compiles.
-    */
-    memcpy((*block)->data, sqfs_image + pos, size);
+
+    if (sqsh_io_read_buf(ump, (*block)->data, pos, size) != size) {
+		ERROR("Failed to read data, I/O error");
+		goto error;
+	}
 
     // if block is compressed, first decompressed it and then initialize block
 	if (compressed) {
@@ -128,13 +126,10 @@ sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size
 
 	*data_size = 0;
 
-	/*
-		Currently we use an array of disk to allocate
-		structures and verify metadata on read time.
-		This is will change to vfs_() operations once driver
-		successfully compiles.
-    */
-    memcpy(&hdr, sqfs_image + pos, sizeof(hdr));
+	if (sqsh_io_read_buf(ump, &hdr, pos, sizeof(hdr)) != sizeof(hdr)) {
+		ERROR("Failed to read data, I/O error");
+		return SQFS_ERR;
+	}
 
 	pos += sizeof(hdr);
 	*data_size += sizeof(hdr);
