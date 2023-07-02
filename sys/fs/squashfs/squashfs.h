@@ -285,6 +285,14 @@ struct sqsh_table {
 	uint64_t	*blocks;
 };
 
+// This overlays the fid structure (see mount.h)
+struct sqsh_fid {
+	uint16_t	len;
+	uint16_t	pad;
+	ino_t		ino;
+	uint32_t	gen;
+};
+
 #ifdef SQUASHFS_DEBUG
 #define TRACE(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
 #else

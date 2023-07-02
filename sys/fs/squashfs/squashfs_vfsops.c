@@ -436,7 +436,21 @@ squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 static int
 squashfs_fhtovp(struct mount *mp, struct fid *fhp, int flags, struct vnode **vpp)
 {
-	return (EOPNOTSUPP);
+	struct sqsh_inode *inode;
+	struct sqsh_fid *tfp;
+	struct vnode *vp;
+
+	tfp = (struct sqsh_fid*)fhp;
+
+	int error = VFS_VGET(mp, tfp->ino, LK_EXCLUSIVE, &vp);
+	if (error != 0) {
+		*vpp = NULL;
+		return error;
+	}
+	// TODO : add checks for inode
+
+	*vpp = vp;
+	return (0);
 }
 
 static struct vfsops squashfs_vfsops = {
