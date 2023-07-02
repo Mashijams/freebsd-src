@@ -62,6 +62,8 @@ struct sqsh_inode {
 			uint32_t parent_inode;
 		} dir;
 	} xtra;
+
+	struct vnode *vnode;
 };
 
 // helper functions to query on table

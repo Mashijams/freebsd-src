@@ -57,6 +57,7 @@
 #include<squashfs_decompressor.h>
 
 static	MALLOC_DEFINE(M_SQUASHFSMNT, "SQUASHFS mount", "SQUASHFS mount structure");
+static	MALLOC_DEFINE(M_SQUASHFS_NODE, "SQUASHFS inode", "SQUASHFS vnode private data");
 
 static	vfs_mount_t		squashfs_mount;
 static	vfs_unmount_t	squashfs_unmount;
@@ -384,7 +385,52 @@ squashfs_statfs(struct mount *mp, struct statfs *sbp)
 static int
 squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 {
-	return (EOPNOTSUPP);
+	struct sqsh_mount *ump;
+	struct sqsh_inode *inode;
+	struct thread *td;
+	struct vnode *vp;
+
+	td = curthread;
+	int error = vfs_hash_get(mp, ino, lkflags, td, vpp, NULL, NULL);
+	if (error || *vpp != NULL)
+		return (error);
+
+	ump = MP_TO_SQSH_MOUNT(mp);
+	inode = malloc(sizeof(struct sqsh_inode), M_SQUASHFS_NODE, M_WAITOK | M_ZERO);
+
+	// populate inode data as per inode number
+	sqsh_err err = sqsh_get_inode(ump, inode, ino);
+	if (err != SQFS_OK) {
+		*vpp = NULL;
+		free(inode, M_SQUASHFS_NODE);
+		return EINVAL;
+	}
+
+	error = getnewvnode("squashfs", mp, &squashfs_vnodeops, &vp);
+	if (error != 0) {
+		*vpp = NULL;
+		free(inode, M_SQUASHFS_NODE);
+		return error;
+	}
+
+	vp->v_data = inode;
+	vp->v_type = inode->base.inode_type;
+	tnp->vnode = vp;
+
+	lockmgr(vp->v_vnlock, lkflags, NULL);
+	error = insmntque(vp, mp);
+	if (error != 0) {
+		*vpp = NULL;
+		free(inode, M_SQUASHFS_NODE);
+		return error;
+	}
+	error = vfs_hash_insert(vp, ino, lkflags, td, vpp, NULL, NULL);
+	if (error != 0 || *vpp != NULL)
+		return (error);
+
+	vn_set_state(vp, VSTATE_CONSTRUCTED);
+	*vpp = vp;
+	return (0);
 }
 
 static int
