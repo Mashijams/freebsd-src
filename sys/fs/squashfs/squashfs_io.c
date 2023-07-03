@@ -64,7 +64,7 @@ sqsh_err sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop) {
 
 	rl = vn_rangelock_rlock(ump->um_vp, off, off + len);
 	int error = vn_lock(ump->um_vp, LK_SHARED);
-	if (error != 0)
+	if (error != 0 && error != 11)
 		return SQFS_ERR;
 
 	error = VOP_READ(ump->um_vp, uiop, IO_DIRECT|IO_NODELOCKED,

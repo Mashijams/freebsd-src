@@ -321,6 +321,7 @@ failed_mount:
 static int
 squashfs_unmount(struct mount *mp, int mntflags)
 {
+	TRACE("%s:",__func__);
 	struct thread *td = curthread;
 	struct sqsh_mount *ump;
 	struct vnode *vp;
@@ -343,6 +344,7 @@ squashfs_unmount(struct mount *mp, int mntflags)
 		sqsh_free_table(&ump->export_table);
 
 	free(ump, M_SQUASHFSMNT);
+	TRACE("%s: completed",__func__);
 
 	return (0);
 }
@@ -350,6 +352,7 @@ squashfs_unmount(struct mount *mp, int mntflags)
 static int
 squashfs_root(struct mount *mp, int flags, struct vnode **vpp)
 {
+	TRACE("%s:",__func__);
 	struct vnode *nvp;
 	struct sqsh_mount *ump;
 
@@ -361,12 +364,14 @@ squashfs_root(struct mount *mp, int flags, struct vnode **vpp)
 
 	nvp->v_vflag |= VV_ROOT;
 	*vpp = nvp;
+	TRACE("%s: completed",__func__);
 	return (0);
 }
 
 static int
 squashfs_statfs(struct mount *mp, struct statfs *sbp)
 {
+	TRACE("%s:",__func__);
 	struct sqsh_mount *ump;
 	ump = MP_TO_SQSH_MOUNT(mp);
 
@@ -384,6 +389,7 @@ squashfs_statfs(struct mount *mp, struct statfs *sbp)
 static int
 squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 {
+	TRACE("%s:",__func__);
 	struct sqsh_mount *ump;
 	struct sqsh_inode *inode;
 	struct thread *td;
@@ -428,6 +434,7 @@ squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 		return (error);
 
 	//vn_set_state(vp, VSTATE_CONSTRUCTED);
+	TRACE("%s: completed",__func__);
 	*vpp = vp;
 	return (0);
 }
@@ -435,6 +442,7 @@ squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 static int
 squashfs_fhtovp(struct mount *mp, struct fid *fhp, int flags, struct vnode **vpp)
 {
+	TRACE("%s:",__func__);
 	struct sqsh_fid *tfp;
 	struct vnode *vp;
 
@@ -448,6 +456,7 @@ squashfs_fhtovp(struct mount *mp, struct fid *fhp, int flags, struct vnode **vpp
 	// TODO : add checks for inode
 
 	*vpp = vp;
+	TRACE("%s: completed",__func__);
 	return (0);
 }
 
