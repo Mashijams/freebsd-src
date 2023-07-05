@@ -171,9 +171,6 @@ sqsh_err sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run
 		if (buf)
 			memcpy(buf, (char*)block->data + cur->offset, take);
 
-		// Free block since currently we have no cache
-		sqsh_free_block(block);
-
 		if (buf)
 			buf = (char*)buf + take;
 		size -= take;
@@ -182,6 +179,9 @@ sqsh_err sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run
 			cur->block = pos;
 			cur->offset = 0;
 		}
+
+		// Free block since currently we have no cache
+		sqsh_free_block(block);
 	}
 	return SQFS_OK;
 }
