@@ -145,6 +145,28 @@ mode_t sqsh_mode(int inode_type) {
 	return 0;
 }
 
+sqsh_err sqsh_verify_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	// check for inode type
+	if (inode->base.inode_type < 1 || inode->base.inode_type > 14)
+		return SQFS_ERR;
+
+	// check for inode_number
+	if (inode->base.inode_number < 1 || inode->base.inode_number > ump->sb.inodes)
+		return SQFS_ERR;
+
+	// if inode type is directory then check for parent inode.
+	// Note that we add +1 because for root inode parent_inode
+	// is total inodes + 1
+	if (inode->base.inode_type == 1) {
+		if (inode->xtra.dir.parent_inode < 1
+			|| inode->xtra.dir.parent_inode > ump->sb.inodes + 1)
+			return SQFS_ERR;
+	}
+
+	return SQFS_OK;
+}
+
 sqsh_err sqsh_get_inode_id(struct sqsh_mount *ump, uint16_t idx, uint32_t *id) {
 	uint32_t rid;
 	sqsh_err err = sqsh_get_table(&ump->id_table, ump, idx, &rid);
@@ -251,6 +273,10 @@ sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		}
 		default: return SQFS_ERR;
 	}
+
+	err = sqsh_verify_inode(ump, inode);
+	if (err != SQFS_OK)
+		return err;
 
 	return SQFS_OK;
 }

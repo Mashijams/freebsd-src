@@ -87,6 +87,7 @@ bool sqsh_export_ok(struct sqsh_mount *ump);
 sqsh_err sqsh_export_inode(struct sqsh_mount *ump, uint32_t n, uint64_t *i);
 
 uint64_t sqsh_root_inode(struct sqsh_mount *ump);
+sqsh_err sqsh_verify_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 
 // init functions for all types of inodes
 sqsh_err sqsh_init_reg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
