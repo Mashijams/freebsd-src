@@ -48,14 +48,14 @@
 #include <sys/uio.h>
 #include <sys/vnode.h>
 
-#include<squashfs.h>
-#include<squashfs_mount.h>
-#include<squashfs_inode.h>
-#include<squashfs_decompressor.h>
+#include <squashfs.h>
+#include <squashfs_mount.h>
+#include <squashfs_inode.h>
+#include <squashfs_decompressor.h>
 
 
-// Support for zlib compressor
-#ifndef SQUASHFS_ZLIB
+/* Support for zlib compressor */
+#ifndef	SQUASHFS_ZLIB
 
 static const struct sqsh_decompressor sqsh_zlib_decompressor = {
 	.decompressor	=	NULL,
@@ -64,18 +64,22 @@ static const struct sqsh_decompressor sqsh_zlib_decompressor = {
 	.supported		=	0
 };
 
-#else
+#else	/* !SQUASHFS_ZLIB */
 
 #include <zlib.h>
 
-static sqsh_err zlib_decompressor(void *input, size_t input_size,
-		void *output, size_t *output_size) {
-	uLongf zout = *output_size;
-	int zerr = uncompress((Bytef*)output, &zout, input, input_size);
+static sqsh_err
+zlib_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	uLongf zout;
+	int zerr;
+
+	zout = *output_size;
+	zerr = uncompress((Bytef*)output, &zout, input, input_size);
 	if (zerr != Z_OK)
-		return SQFS_ERR;
+		return (SQFS_ERR);
 	*output_size = zout;
-	return SQFS_OK;
+	return (SQFS_OK);
 }
 
 const struct sqsh_decompressor sqsh_zlib_decompressor = {
@@ -85,10 +89,10 @@ const struct sqsh_decompressor sqsh_zlib_decompressor = {
 	.supported		=	1
 };
 
-#endif // SQUASHFS_ZLIB
+#endif	/* SQUASHFS_ZLIB */
 
-// lzma decompression support
-#ifndef SQUASHFS_LZMA
+/* lzma decompression support */
+#ifndef	SQUASHFS_LZMA
 
 static const struct sqsh_decompressor sqsh_lzma_decompressor = {
 	.decompressor	=	NULL,
@@ -97,20 +101,25 @@ static const struct sqsh_decompressor sqsh_lzma_decompressor = {
 	.supported		=	0
 };
 
-#else
+#else	/* !SQUASHFS_LZMA */
 
 #include <lzma.h>
 
-static sqsh_err lzma_decompressor(void *input, size_t input_size,
-		void *output, size_t *output_size) {
-	uint64_t memlimit = UINT64_MAX;
-	size_t inpos = 0, outpos = 0;
-	lzma_ret err = lzma_stream_buffer_decode(&memlimit, 0, NULL, input, &inpos, input_size,
+static sqsh_err
+lzma_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	uint64_t memlimit;
+	size_t inpos, outpos;
+	lzma_ret err;
+
+	memlimit = UINT64_MAX;
+	inpos = 0, outpos = 0;
+	err = lzma_stream_buffer_decode(&memlimit, 0, NULL, input, &inpos, input_size,
 		output, &outpos, *output_size);
 	if (err != LZMA_OK)
-		return SQFS_ERR;
+		return (SQFS_ERR);
 	*output_size = outpos;
-	return SQFS_OK;
+	return (SQFS_OK);
 }
 
 const struct sqsh_decompressor sqsh_lzma_decompressor = {
@@ -120,10 +129,10 @@ const struct sqsh_decompressor sqsh_lzma_decompressor = {
 	.supported		=	1
 };
 
-#endif // SQUASHFS_LZMA
+#endif	/* SQUASHFS_LZMA */
 
-// lzo decompressor support
-#ifndef SQUASHFS_LZO
+/* lzo decompressor support */
+#ifndef	SQUASHFS_LZO
 
 static const struct sqsh_decompressor sqsh_lzo_decompressor = {
 	.decompressor	=	NULL,
@@ -132,18 +141,22 @@ static const struct sqsh_decompressor sqsh_lzo_decompressor = {
 	.supported		=	0
 };
 
-#else
+#else	/* !SQUASHFS_LZO */
 
 #include <lzo/lzo1x.h>
 
-static sqsh_err lzo_decompressor(void *input, size_t input_size,
-		void *output, size_t *output_size) {
-	lzo_uint lzout = *output_size;
-	int err = lzo1x_decompress_safe(input, input_size, output, &lzout, NULL);
+static sqsh_err
+lzo_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	lzo_uint lzout;
+	int err;
+
+	lzout = *output_size;
+	err = lzo1x_decompress_safe(input, input_size, output, &lzout, NULL);
 	if (err != LZO_E_OK)
-		return SQFS_ERR;
+		return (SQFS_ERR);
 	*output_size = lzout;
-	return SQFS_OK;
+	return (SQFS_OK);
 }
 
 const struct sqsh_decompressor sqsh_lzo_decompressor = {
@@ -153,11 +166,11 @@ const struct sqsh_decompressor sqsh_lzo_decompressor = {
 	.supported		=	1
 };
 
-#endif // SQUASHFS_LZO
+#endif	/* SQUASHFS_LZO */
 
 
-// lz4 decompressor supprt
-#ifndef SQUASHFS_LZ4
+/* lz4 decompressor supprt */
+#ifndef	SQUASHFS_LZ4
 
 static const struct sqsh_decompressor sqsh_lz4_decompressor = {
 	.decompressor	=	NULL,
@@ -166,17 +179,20 @@ static const struct sqsh_decompressor sqsh_lz4_decompressor = {
 	.supported		=	0
 };
 
-#else
+#else	/* !SQUASHFS_LZ4 */
 
 #include <lz4.h>
 
-static sqsh_err lz4_decompressor(void *input, size_t input_size,
-		void *output, size_t *output_size) {
-	int lz4out = LZ4_decompress_safe (input, output, input_size, *output_size);
+static sqsh_err
+lz4_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	int lz4out;
+
+	lz4out = LZ4_decompress_safe (input, output, input_size, *output_size);
 	if (lz4out < 0)
-		return SQFS_ERR;
+		return (SQFS_ERR);
 	*output_size = lz4out;
-	return SQFS_OK;
+	return (SQFS_OK);
 }
 
 const struct sqsh_decompressor sqsh_lz4_decompressor = {
@@ -186,10 +202,10 @@ const struct sqsh_decompressor sqsh_lz4_decompressor = {
 	.supported		=	1
 };
 
-#endif // SQUASHFS_LZ4
+#endif	/* SQUASHFS_LZ4 */
 
-// zstd decompressor support
-#ifndef SQUASHFS_ZSTD
+/* zstd decompressor support */
+#ifndef	SQUASHFS_ZSTD
 
 static const struct sqsh_decompressor sqsh_zstd_decompressor = {
 	.decompressor	=	NULL,
@@ -198,17 +214,20 @@ static const struct sqsh_decompressor sqsh_zstd_decompressor = {
 	.supported		=	0
 };
 
-#else
+#else	/* !SQUASHFS_ZSTD */
 
 #include <zstd.h>
 
-static sqsh_err zstd_decompressor(void *input, size_t input_size,
-        void *output, size_t *output_size) {
-	const size_t zstdout = ZSTD_decompress(output, *output_size, input, input_size);
+static sqsh_err
+zstd_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	const size_t zstdout;
+
+	zstdout = ZSTD_decompress(output, *output_size, input, input_size);
 	if (ZSTD_isError(zstdout))
-		return SQFS_ERR;
+		return (SQFS_ERR);
 	*output_size = zstdout;
-	return SQFS_OK;
+	return (SQFS_OK);
 }
 
 const struct sqsh_decompressor sqsh_zstd_decompressor = {
@@ -218,9 +237,9 @@ const struct sqsh_decompressor sqsh_zstd_decompressor = {
 	.supported		=	1
 };
 
-#endif // SQUASHFS_ZSTD
+#endif	/* SQUASHFS_ZSTD */
 
-// Unknown compression type
+/* Unknown compression type */
 static const struct sqsh_decompressor sqsh_unknown_decompressor = {
 	.decompressor	=	NULL,
 	.id				=	0,
@@ -238,7 +257,8 @@ static const struct sqsh_decompressor *decompressor[] = {
 	&sqsh_unknown_decompressor
 };
 
-const struct sqsh_decompressor *sqsh_lookup_decompressor(int id)
+const struct sqsh_decompressor *
+sqsh_lookup_decompressor(int id)
 {
 	int i;
 

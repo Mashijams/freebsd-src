@@ -44,13 +44,13 @@
 #include <sys/bio.h>
 #include <sys/buf.h>
 
-#include<squashfs.h>
-#include<squashfs_mount.h>
-
 #include <vm/vm.h>
 #include <vm/vm_extern.h>
 #include <vm/vm_object.h>
 #include <vm/vnode_pager.h>
+
+#include <squashfs.h>
+#include <squashfs_mount.h>
 
 static int
 squashfs_lookup(struct vop_cachedlookup_args *ap)

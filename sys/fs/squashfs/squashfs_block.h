@@ -28,8 +28,8 @@
  *
  */
 
-#ifndef SQUASHFS_BLOCK_H
-#define SQUASHFS_BLOCK_H
+#ifndef	SQUASHFS_BLOCK_H
+#define	SQUASHFS_BLOCK_H
 
 struct sqsh_block {
 	size_t	size;
@@ -41,23 +41,23 @@ struct sqsh_block_run {
 	size_t	offset;
 };
 
-// Helper functions to check if metadata/data block is compressed and its size
-void sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size);
-void sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size);
+/* Helper functions to check if metadata/data block is compressed and its size */
+void		sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size);
+void		sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size);
 
-sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
-	uint32_t size, size_t outsize, struct sqsh_block **block);
-void sqsh_free_block(struct sqsh_block *block);
+sqsh_err	sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
+				uint32_t size, size_t outsize, struct sqsh_block **block);
+void		sqsh_free_block(struct sqsh_block *block);
 
-sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size,
-	struct sqsh_block **block);
-sqsh_err sqsh_data_read(struct sqsh_mount *ump, off_t pos, uint32_t hdr,
-	struct sqsh_block **block);
+sqsh_err	sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size,
+				struct sqsh_block **block);
+sqsh_err	sqsh_data_read(struct sqsh_mount *ump, off_t pos, uint32_t hdr,
+				struct sqsh_block **block);
 
-sqsh_err sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run *cur,
-	void *buf, size_t size);
+sqsh_err	sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run *cur,
+				void *buf, size_t size);
 
-// Number of groups of size "group" required to hold size "total"
-size_t sqsh_ceil(uint64_t total, size_t group);
+/* Number of groups of size "group" required to hold size "total" */
+size_t		sqsh_ceil(uint64_t total, size_t group);
 
-#endif // SQUASHFS_BLOCK_H
+#endif

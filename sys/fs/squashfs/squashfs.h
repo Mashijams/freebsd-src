@@ -28,86 +28,85 @@
  *
  */
 
-#ifndef SQUASHFS_H
-#define SQUASHFS_H
+#ifndef	SQUASHFS_H
+#define	SQUASHFS_H
 
-#define SQUASHFS_MAGIC				0x73717368
-#define SQUASHFS_MAGIC_SWAP 		0x68737173
+#define	SQUASHFS_MAGIC				0x73717368
+#define	SQUASHFS_MAGIC_SWAP 		0x68737173
 
-#define SQUASHFS_CACHED_FRAGMENTS	3
-#define SQUASHFS_MAJOR				4
-#define SQUASHFS_MINOR				0
-#define SQUASHFS_START				0
+#define	SQUASHFS_CACHED_FRAGMENTS	3
+#define	SQUASHFS_MAJOR				4
+#define	SQUASHFS_MINOR				0
+#define	SQUASHFS_START				0
 
+#define	SQUASHFS_METADATA_SIZE		8192
+#define	SQUASHFS_METADATA_LOG		13
 
-#define SQUASHFS_METADATA_SIZE		8192
-#define SQUASHFS_METADATA_LOG		13
+#define	SQUASHFS_FILE_SIZE			131072
+#define	SQUASHFS_FILE_LOG			17
 
-#define SQUASHFS_FILE_SIZE			131072
-#define SQUASHFS_FILE_LOG			17
+#define	SQUASHFS_FILE_MAX_SIZE		1048576
+#define	SQUASHFS_FILE_MAX_LOG		20
 
-#define SQUASHFS_FILE_MAX_SIZE		1048576
-#define SQUASHFS_FILE_MAX_LOG		20
+#define	SQUASHFS_IDS				65536
 
-#define SQUASHFS_IDS				65536
+#define	SQUASHFS_MAX_NAME_LEN		256
 
-#define SQUASHFS_MAX_NAME_LEN		256
+#define	SQUASHFS_INVALID_FRAG		(0xffffffffU)
+#define	SQUASHFS_INVALID_XATTR		(0xffffffffU)
+#define	SQUASHFS_INVALID_BLK		((int64_t)-1)
 
-#define SQUASHFS_INVALID_FRAG		(0xffffffffU)
-#define SQUASHFS_INVALID_XATTR		(0xffffffffU)
-#define SQUASHFS_INVALID_BLK		((int64_t)-1)
+#define	SQUASHFS_IO_SIZE			65536
 
-#define SQUASHFS_IO_SIZE			65536
+/* Filesystem flags */
+#define	SQUASHFS_NOI				0
+#define	SQUASHFS_NOD				1
+#define	SQUASHFS_NOF				3
+#define	SQUASHFS_NO_FRAG			4
+#define	SQUASHFS_ALWAYS_FRAG		5
+#define	SQUASHFS_DUPLICATE			6
+#define	SQUASHFS_EXPORT				7
+#define	SQUASHFS_COMP_OPT			10
 
-// Filesystem flags
-#define SQUASHFS_NOI				0
-#define SQUASHFS_NOD				1
-#define SQUASHFS_NOF				3
-#define SQUASHFS_NO_FRAG			4
-#define SQUASHFS_ALWAYS_FRAG		5
-#define SQUASHFS_DUPLICATE			6
-#define SQUASHFS_EXPORT				7
-#define SQUASHFS_COMP_OPT			10
+/* Max number of types and file types */
+#define	SQUASHFS_DIR_TYPE			1
+#define	SQUASHFS_REG_TYPE			2
+#define	SQUASHFS_SYMLINK_TYPE		3
+#define	SQUASHFS_BLKDEV_TYPE		4
+#define	SQUASHFS_CHRDEV_TYPE		5
+#define	SQUASHFS_FIFO_TYPE			6
+#define	SQUASHFS_SOCKET_TYPE		7
+#define	SQUASHFS_LDIR_TYPE			8
+#define	SQUASHFS_LREG_TYPE			9
+#define	SQUASHFS_LSYMLINK_TYPE		10
+#define	SQUASHFS_LBLKDEV_TYPE		11
+#define	SQUASHFS_LCHRDEV_TYPE		12
+#define	SQUASHFS_LFIFO_TYPE			13
+#define	SQUASHFS_LSOCKET_TYPE		14
 
-// Max number of types and file types
-#define SQUASHFS_DIR_TYPE			1
-#define SQUASHFS_REG_TYPE			2
-#define SQUASHFS_SYMLINK_TYPE		3
-#define SQUASHFS_BLKDEV_TYPE		4
-#define SQUASHFS_CHRDEV_TYPE		5
-#define SQUASHFS_FIFO_TYPE			6
-#define SQUASHFS_SOCKET_TYPE		7
-#define SQUASHFS_LDIR_TYPE			8
-#define SQUASHFS_LREG_TYPE			9
-#define SQUASHFS_LSYMLINK_TYPE		10
-#define SQUASHFS_LBLKDEV_TYPE		11
-#define SQUASHFS_LCHRDEV_TYPE		12
-#define SQUASHFS_LFIFO_TYPE			13
-#define SQUASHFS_LSOCKET_TYPE		14
+#define	SQUASHFS_COMPRESSED_BIT		(1 << 15)
+#define	SQUASHFS_COMPRESSED_BIT_BLOCK	(1 << 24)
 
-#define SQUASHFS_COMPRESSED_BIT		(1 << 15)
-#define SQUASHFS_COMPRESSED_BIT_BLOCK	(1 << 24)
+/* cached data constants for filesystem */
+#define	SQUASHFS_CACHED_BLKS		8
 
-// cached data constants for filesystem
-#define SQUASHFS_CACHED_BLKS		8
+#define	SQUASHFS_MAX_FILE_SIZE_LOG	64
 
-#define SQUASHFS_MAX_FILE_SIZE_LOG	64
-
-#define SQUASHFS_MAX_FILE_SIZE		(1LL << \
+#define	SQUASHFS_MAX_FILE_SIZE		(1LL << \
 					(SQUASHFS_MAX_FILE_SIZE_LOG - 2))
 
-// meta index cache
-#define SQUASHFS_META_INDEXES		(SQUASHFS_METADATA_SIZE / sizeof(unsigned int))
-#define SQUASHFS_META_ENTRIES		127
-#define SQUASHFS_META_SLOTS			8
+/* meta index cache */
+#define	SQUASHFS_META_INDEXES		(SQUASHFS_METADATA_SIZE / sizeof(unsigned int))
+#define	SQUASHFS_META_ENTRIES		127
+#define	SQUASHFS_META_SLOTS			8
 
-// definitions for structures on disk
-#define ZLIB_COMPRESSION	1
-#define LZMA_COMPRESSION	2
-#define LZO_COMPRESSION		3
-#define XZ_COMPRESSION		4
-#define LZ4_COMPRESSION		5
-#define ZSTD_COMPRESSION	6
+/* definitions for structures on disk */
+#define	ZLIB_COMPRESSION	1
+#define	LZMA_COMPRESSION	2
+#define	LZO_COMPRESSION		3
+#define	XZ_COMPRESSION		4
+#define	LZ4_COMPRESSION		5
+#define	ZSTD_COMPRESSION	6
 
 struct sqsh_sb {
 	uint32_t		s_magic;
@@ -279,13 +278,13 @@ struct sqsh_fragment_entry {
 	uint32_t		unused;
 };
 
-// This struct handles tables which contains inodes, inode ID and fragments
+/* This struct handles tables which contains inodes, inode ID and fragments */
 struct sqsh_table {
 	size_t		each;
 	uint64_t	*blocks;
 };
 
-// This overlays the fid structure (see mount.h)
+/* This overlays the fid structure (see mount.h) */
 struct sqsh_fid {
 	uint16_t	len;
 	uint16_t	pad;
@@ -295,21 +294,21 @@ struct sqsh_fid {
 
 extern struct vop_vector squashfs_vnodeops;
 
-#define SQUASHFS_DEBUG
-#ifdef SQUASHFS_DEBUG
-#define TRACE(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
-#else
-#define TRACE(x...)
-#endif // SQUASHFS_DEBUG
-#define ERROR(x...)	printf("\n\033[0;31msquashfs:\33[0m " x)
+#define	SQUASHFS_DEBUG
+#ifdef	SQUASHFS_DEBUG
+#define	TRACE(x...)	printf("\n\033[0;34msquashfs:\33[0m " x)
+#else	/* !SQUASHFS_DEBUG */
+#define	TRACE(x...)
+#endif	/* SQUASHFS_DEBUG */
+#define	ERROR(x...)	printf("\n\033[0;31msquashfs:\33[0m " x)
 
 typedef enum {
-	SQFS_OK,			// everything fine
-	SQFS_BADFORMAT,		// unsupported file format
-	SQFS_BADVERSION,	// unsupported squashfs version
-	SQFS_BADCOMP,		// unsupported compression method
-	SQFS_UNSUP,			// unsupported feature
-	SQFS_ERR			// error in operation
+	SQFS_OK,			/* everything fine */
+	SQFS_BADFORMAT,		/* unsupported file format */
+	SQFS_BADVERSION,	/* unsupported squashfs version */
+	SQFS_BADCOMP,		/* unsupported compression method */
+	SQFS_UNSUP,			/* unsupported feature */
+	SQFS_ERR			/* error in operation */
 } sqsh_err;
 
-#endif // SQUASHFS_H
+#endif	/* SQUASHFS_H */

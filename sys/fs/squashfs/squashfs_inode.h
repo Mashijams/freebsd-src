@@ -28,83 +28,65 @@
  *
  */
 
-#ifndef SQUASHFS_INODE_H
-#define SQUASHFS_INODE_H
+#ifndef	SQUASHFS_INODE_H
+#define	SQUASHFS_INODE_H
 
-#include <stdbool.h>
 #include <squashfs_block.h>
 
-#define SQUASHFS_INODE_OFFSET(A)	((unsigned int) ((A) & 0xffff))
+#define	SQUASHFS_INODE_OFFSET(A)	((unsigned int) ((A) & 0xffff))
 
 struct sqsh_inode {
-	struct sqsh_base_inode base;
-	int nlink;
-	uint32_t xattr;
+	struct sqsh_base_inode	base;
+	int						nlink;
+	uint32_t				xattr;
 
-	struct sqsh_block_run next;
+	struct sqsh_block_run	next;
 
 	union {
 		struct {
-			int major, minor;
+			int				major;
+			int				minor;
 		} dev;
-		size_t symlink_size;
+		size_t				symlink_size;
 		struct {
-			uint64_t start_block;
-			uint64_t file_size;
-			uint32_t frag_idx;
-			uint32_t frag_off;
+			uint64_t		start_block;
+			uint64_t		file_size;
+			uint32_t		frag_idx;
+			uint32_t		frag_off;
 		} reg;
 		struct {
-			uint32_t start_block;
-			uint16_t offset;
-			uint32_t dir_size;
-			uint16_t idx_count;
-			uint32_t parent_inode;
+			uint32_t		start_block;
+			uint16_t		offset;
+			uint32_t		dir_size;
+			uint16_t		idx_count;
+			uint32_t		parent_inode;
 		} dir;
 	} xtra;
 
-	struct vnode *vnode;
+	struct vnode			*vnode;
 };
 
-// helper functions to query on table
-sqsh_err sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
-	off_t start, size_t each, size_t count);
-void sqsh_free_table(struct sqsh_table *table);
-sqsh_err sqsh_get_table(struct sqsh_table *table, struct sqsh_mount *ump,
-	size_t idx, void *buf);
+/* helper functions to query on table */
+sqsh_err	sqsh_init_table(struct sqsh_table *table, struct sqsh_mount *ump,
+				off_t start, size_t each, size_t count);
+void		sqsh_free_table(struct sqsh_table *table);
+sqsh_err	sqsh_get_table(struct sqsh_table *table, struct sqsh_mount *ump,
+				size_t idx, void *buf);
 
-// helper functions to query on inode
-void sqsh_metadata_run_inode(struct sqsh_block_run *cur, uint64_t id,
-	off_t base);
-sqsh_err sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
-	uint64_t id);
+/* helper functions to query on inode */
+void		sqsh_metadata_run_inode(struct sqsh_block_run *cur, uint64_t id,
+				off_t base);
+sqsh_err	sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				uint64_t id);
 
-mode_t sqsh_mode(int inode_type);
+mode_t		sqsh_mode(int inode_type);
 
-sqsh_err sqsh_get_inode_id(struct sqsh_mount *ump, uint16_t idx, uint32_t *id);
+sqsh_err	sqsh_get_inode_id(struct sqsh_mount *ump, uint16_t idx, uint32_t *id);
 
-bool sqsh_export_ok(struct sqsh_mount *ump);
-sqsh_err sqsh_export_inode(struct sqsh_mount *ump, uint32_t n, uint64_t *i);
+bool		sqsh_export_ok(struct sqsh_mount *ump);
+sqsh_err	sqsh_export_inode(struct sqsh_mount *ump, uint32_t n, uint64_t *i);
 
-uint64_t sqsh_root_inode(struct sqsh_mount *ump);
-sqsh_err sqsh_verify_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
+uint64_t	sqsh_root_inode(struct sqsh_mount *ump);
+sqsh_err	sqsh_verify_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
 
-// init functions for all types of inodes
-sqsh_err sqsh_init_reg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_lreg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_symlink_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_dev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_ldev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_ipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-sqsh_err sqsh_init_lipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode);
-
-// Swapendian functions for all types of inodes
-void swapendian_base_inode(struct sqsh_base_inode *temp);
-void swapendian_reg_inode(struct sqsh_reg_inode *temp);
-void swapendian_lreg_inode(struct sqsh_lreg_inode *temp);
-void swapendian_dir_inode(struct sqsh_dir_inode *temp);
-void swapendian_ldir_inode(struct sqsh_ldir_inode *temp);
-
-#endif // SQUASHFS_INODE_H
+#endif

@@ -28,12 +28,12 @@
  * $FreeBSD$
  */
 
-#ifndef SQUASHFS_MOUNT_H
-#define SQUASHFS_MOUNT_H
+#ifndef	SQUASHFS_MOUNT_H
+#define	SQUASHFS_MOUNT_H
 
-#ifdef _KERNEL
+#ifdef	_KERNEL
 
-// This structure describes squashfs mount structure data
+/* This structure describes squashfs mount structure data */
 struct sqsh_mount {
 	struct mount					*um_mountp;
 	struct vnode					*um_vp;
@@ -44,17 +44,16 @@ struct sqsh_mount {
 	const struct sqsh_decompressor	*decompressor;
 };
 
-static inline
-struct sqsh_mount*
+static inline struct sqsh_mount *
 MP_TO_SQSH_MOUNT(struct mount *mp)
 {
 	MPASS(mp != NULL && mp->mnt_data != NULL);
 	return (mp->mnt_data);
 }
 
-// Define all accepted compressions
-#define SQUASHFS_ZLIB
+/* Define all accepted compressions */
+#define	SQUASHFS_ZLIB
 
-#endif // _KERNEL
+#endif	/* _KERNEL */
 
-#endif // SQUASHFS_MOUNT_H
+#endif	/* SQUASHFS_MOUNT_H */

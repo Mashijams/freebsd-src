@@ -47,25 +47,33 @@
 #include <sys/uio.h>
 #include <sys/vnode.h>
 
-#include<squashfs.h>
-#include<squashfs_mount.h>
-#include<squashfs_io.h>
+#include <squashfs.h>
+#include <squashfs_mount.h>
+#include <squashfs_io.h>
+
+sqsh_err    sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop);
 
 /*
-	Reads data according to the provided uio.
-	This function reads directly from disk file
-	and all decompression reads are handled by seperate
-	functions in squashfs_block.h file.
-*/
-sqsh_err sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop) {
-	void *rl	=	NULL;
-	off_t off	=	uiop->uio_offset;
-	size_t len	=	uiop->uio_resid;
+ * Reads data according to the provided uio.
+ * This function reads directly from disk file
+ * and all decompression reads are handled by seperate
+ * functions in squashfs_block.h file.
+ */
+sqsh_err
+sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop)
+{
+	void *rl;
+	off_t off;
+	size_t len;
+	int error;
+
+	off	= uiop->uio_offset;
+	len	= uiop->uio_resid;
 
 	rl = vn_rangelock_rlock(ump->um_vp, off, off + len);
-	int error = vn_lock(ump->um_vp, LK_SHARED);
+	error = vn_lock(ump->um_vp, LK_SHARED);
 	if (error != 0 && error != 11)
-		return SQFS_ERR;
+		return (SQFS_ERR);
 
 	error = VOP_READ(ump->um_vp, uiop, IO_DIRECT|IO_NODELOCKED,
 		uiop->uio_td->td_ucred);
@@ -73,32 +81,36 @@ sqsh_err sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop) {
 	vn_rangelock_unlock(ump->um_vp, rl);
 
 	if (error != 0)
-		return SQFS_ERR;
+		return (SQFS_ERR);
 
-	return SQFS_OK;
+	return (SQFS_OK);
 }
 
 /*
-	Reads data into the provided buffer.
-	This function reads directly from disk file
-	and all decompression reads are handled by seperate
-	functions in squashfs_block.h file.
-	On succes it return number of bytes read else negative
-	value on failure.
-*/
-ssize_t sqsh_io_read_buf(struct sqsh_mount *ump, void *buf, off_t off, size_t len) {
+ * Reads data into the provided buffer.
+ * This function reads directly from disk file
+ * and all decompression reads are handled by seperate
+ * functions in squashfs_block.h file.
+ * On succes it return number of bytes read else negative
+ * value on failure.
+ */
+ssize_t
+sqsh_io_read_buf(struct sqsh_mount *ump, void *buf, off_t off, size_t len)
+{
 	struct uio auio;
 	struct iovec aiov;
+	sqsh_err error;
+	ssize_t res;
 
-	// return success and reading zero bytes of data
+	/* return success and reading zero bytes of data */
 	if (len == 0)
-		return 0;
+		return (0);
 
-	// initialize iovec
+	/* initialize iovec */
 	aiov.iov_base	=	buf;
 	aiov.iov_len	=	len;
 
-	// initialize uio
+	/* initialize uio */
 	auio.uio_iov	=	&aiov;
 	auio.uio_iovcnt	=	1;
 	auio.uio_offset	=	off;
@@ -107,13 +119,13 @@ ssize_t sqsh_io_read_buf(struct sqsh_mount *ump, void *buf, off_t off, size_t le
 	auio.uio_resid	=	len;
 	auio.uio_td		=	curthread;
 
-	sqsh_err error	=	sqsh_io_read(ump, &auio);
+	error = sqsh_io_read(ump, &auio);
 
-	// return negative value on reading failure
+	/* return negative value on reading failure */
 	if (error != SQFS_OK)
-		return -1;
+		return (-1);
 
-	ssize_t res = len - auio.uio_resid;
+	res = len - auio.uio_resid;
 
-	return res;
+	return (res);
 }

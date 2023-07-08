@@ -48,36 +48,42 @@
 #include <sys/uio.h>
 #include <sys/vnode.h>
 
-#include<squashfs.h>
-#include<squashfs_io.h>
-#include<squashfs_mount.h>
-#include<squashfs_inode.h>
-#include<squashfs_decompressor.h>
-#include<squashfs_block.h>
+#include <squashfs.h>
+#include <squashfs_io.h>
+#include <squashfs_mount.h>
+#include <squashfs_inode.h>
+#include <squashfs_decompressor.h>
+#include <squashfs_block.h>
 
 static	MALLOC_DEFINE(M_SQUASHFSBLOCK, "SQUASHFS block", "SQUASHFS block structure");
 static	MALLOC_DEFINE(M_SQUASHFSBLOCKD, "SQUASHFS block data", "SQUASHFS block data buffer");
 
-void sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size) {
-    // Bit is set if block is uncompressed
+void
+sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size)
+{
+    /* Bit is set if block is uncompressed */
     *compressed = !(hdr & SQUASHFS_COMPRESSED_BIT);
     *size = hdr & ~SQUASHFS_COMPRESSED_BIT;
     if (!*size)
         *size = SQUASHFS_COMPRESSED_BIT;
 }
 
-void sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size) {
+void
+sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size)
+{
     *compressed = !(hdr & SQUASHFS_COMPRESSED_BIT_BLOCK);
     *size = hdr & ~SQUASHFS_COMPRESSED_BIT_BLOCK;
 }
 
-sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
-    uint32_t size, size_t outsize, struct sqsh_block **block) {
+sqsh_err
+sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
+    uint32_t size, size_t outsize, struct sqsh_block **block)
+{
 	sqsh_err err;
-    // allocate block on heap
+    /* allocate block on heap */
     *block = malloc(sizeof(**block), M_SQUASHFSBLOCK, M_WAITOK);
 	if (*block == NULL)
-		return SQFS_ERR;
+		return (SQFS_ERR);
     (*block)->data = malloc(size, M_SQUASHFSBLOCKD, M_WAITOK);
 	if ((*block)->data == NULL)
 		goto error;
@@ -87,7 +93,7 @@ sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
 		goto error;
 	}
 
-    // if block is compressed, first decompressed it and then initialize block
+    /* if block is compressed, first decompressed it and then initialize block */
 	if (compressed) {
 		char *decomp = malloc(outsize, M_SQUASHFSBLOCKD, M_WAITOK);
 		if (decomp == NULL)
@@ -105,30 +111,35 @@ sqsh_err sqsh_block_read(struct sqsh_mount *ump, off_t pos, bool compressed,
 		(*block)->size = size;
 	}
 
-	return SQFS_OK;
+	return (SQFS_OK);
 
 error:
 	sqsh_free_block(*block);
 	*block = NULL;
-	return SQFS_ERR;
+	return (SQFS_ERR);
 }
 
-void sqsh_free_block(struct sqsh_block *block) {
+void
+sqsh_free_block(struct sqsh_block *block)
+{
 	free(block->data, M_SQUASHFSBLOCKD);
 	free(block, M_SQUASHFSBLOCK);
 }
 
-sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size,
-	struct sqsh_block **block) {
+sqsh_err
+sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size,
+	struct sqsh_block **block)
+{
 	uint16_t hdr;
 	bool compressed;
 	uint16_t size;
+	sqsh_err err;
 
 	*data_size = 0;
 
 	if (sqsh_io_read_buf(ump, &hdr, pos, sizeof(hdr)) != sizeof(hdr)) {
 		ERROR("Failed to read data, I/O error");
-		return SQFS_ERR;
+		return (SQFS_ERR);
 	}
 
 	pos += sizeof(hdr);
@@ -137,31 +148,45 @@ sqsh_err sqsh_metadata_read(struct sqsh_mount *ump, off_t pos, size_t *data_size
 
 	sqsh_metadata_header(hdr, &compressed, &size);
 
-	sqsh_err err = sqsh_block_read(ump, pos, compressed, size,
+	err = sqsh_block_read(ump, pos, compressed, size,
 		SQUASHFS_METADATA_SIZE, block);
 	*data_size += size;
-	return err;
+
+	return (err);
 }
 
-sqsh_err sqsh_data_read(struct sqsh_mount *ump, off_t pos,
-	uint32_t hdr, struct sqsh_block **block) {
+sqsh_err
+sqsh_data_read(struct sqsh_mount *ump, off_t pos,
+	uint32_t hdr, struct sqsh_block **block)
+{
 	bool compressed;
 	uint32_t size;
+	sqsh_err err;
+
 	sqsh_data_header(hdr, &compressed, &size);
-	return sqsh_block_read(ump, pos, compressed, size,
+	err = sqsh_block_read(ump, pos, compressed, size,
 		ump->sb.block_size, block);
+
+	return (err);
 }
 
-sqsh_err sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run
-	*cur, void *buf, size_t size) {
-	off_t pos = cur->block;
+sqsh_err
+sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run
+	*cur, void *buf, size_t size)
+{
+	off_t pos;
+
+	pos = cur->block;
 	while (size > 0) {
 		struct sqsh_block *block;
 		size_t take;
-		size_t data_size = 0;
-		sqsh_err err = sqsh_metadata_read(ump, pos, &data_size, &block);
+		size_t data_size;
+		sqsh_err err;
+
+		data_size = 0;
+		err = sqsh_metadata_read(ump, pos, &data_size, &block);
 		if (err != SQFS_OK)
-			return err;
+			return (err);
 
 		pos += data_size;
 
@@ -180,16 +205,21 @@ sqsh_err sqsh_metadata_get(struct sqsh_mount *ump, struct sqsh_block_run
 			cur->offset = 0;
 		}
 
-		// Free block since currently we have no cache
+		/* Free block since currently we have no cache */
 		sqsh_free_block(block);
 	}
-	return SQFS_OK;
+	return (SQFS_OK);
 }
 
-// This is a normal ceil function
-size_t sqsh_ceil(uint64_t total, size_t group) {
-	size_t ans = (size_t)(total / group);
+/* This is a normal ceil function */
+size_t
+sqsh_ceil(uint64_t total, size_t group)
+{
+	size_t ans;
+
+	ans = (size_t)(total / group);
 	if (total % group)
 		ans += 1;
-	return ans;
+
+	return (ans);
 }

@@ -28,8 +28,8 @@
  *
  */
 
-#ifndef SQUASHFS_DECOMPRESSOR_H
-#define SQUASHFS_DECOMPRESSOR_H
+#ifndef	SQUASHFS_DECOMPRESSOR_H
+#define	SQUASHFS_DECOMPRESSOR_H
 
 struct sqsh_decompressor {
 	sqsh_err (*decompressor)(void* input, size_t input_size,
@@ -40,26 +40,26 @@ struct sqsh_decompressor {
 	int		supported;
 };
 
-#ifdef SQUASHFS_ZLIB
+#ifdef	SQUASHFS_ZLIB
 extern const struct sqsh_decompressor sqsh_zlib_decompressor;
-#endif
+#endif	/* SQUASHFS_ZLIB */
 
-#ifdef SQUASHFS_LZMA
+#ifdef	SQUASHFS_LZMA
 extern const struct sqsh_decompressor sqsh_lzma_decompressor;
-#endif
+#endif	/* SQUASHFS_LZMA */
 
-#ifdef SQUASHFS_LZO
+#ifdef	SQUASHFS_LZO
 extern const struct sqsh_decompressor sqsh_lzo_decompressor;
-#endif
+#endif	/* SQUASHFS_LZO */
 
-#ifdef SQUASHFS_LZ4
+#ifdef	SQUASHFS_LZ4
 extern const struct sqsh_decompressor sqsh_lz4_decompressor;
-#endif
+#endif	/* SQUASHFS_LZ4 */
 
-#ifdef SQUASHFS_ZSTD
+#ifdef	SQUASHFS_ZSTD
 extern const struct sqsh_decompressor sqsh_zstd_decompressor;
-#endif
+#endif	/* SQUASHFS_ZSTD */
 
-const struct sqsh_decompressor *sqsh_lookup_decompressor(int id);
+const struct sqsh_decompressor	*sqsh_lookup_decompressor(int id);
 
-#endif // SQUASHFS_DECOMPRESSOR_H
+#endif	/* SQUASHFS_DECOMPRESSOR_H */
