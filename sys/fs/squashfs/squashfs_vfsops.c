@@ -330,17 +330,24 @@ squashfs_unmount(struct mount *mp, int mntflags)
 	struct thread *td = curthread;
 	struct sqsh_mount *ump;
 	struct vnode *vp;
-	int flags = FREAD;
+	int flags;
+	int error;
+
+	flags = 0;
 
 	/* Handle forced unmounts */
 	if (mntflags & MNT_FORCE)
 		flags |= FORCECLOSE;
 
+	error = vflush(mp, 0, flags, curthread);
+	if (error != 0)
+		return (error);
+
 	ump = MP_TO_SQSH_MOUNT(mp);
 	vp = ump->um_vp;
 
 	/* close disk file vnode */
-	vn_close(vp, flags, td->td_ucred, td);
+	vn_close(vp, FREAD, td->td_ucred, td);
 
 	/* destroy fs internals */
 	sqsh_free_table(&ump->id_table);
@@ -349,6 +356,7 @@ squashfs_unmount(struct mount *mp, int mntflags)
 		sqsh_free_table(&ump->export_table);
 
 	free(ump, M_SQUASHFSMNT);
+	mp->mnt_data = NULL;
 	TRACE("%s: completed",__func__);
 
 	return (0);

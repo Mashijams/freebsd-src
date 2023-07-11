@@ -51,6 +51,7 @@
 
 #include <squashfs.h>
 #include <squashfs_mount.h>
+#include <squashfs_inode.h>
 
 static int
 squashfs_lookup(struct vop_cachedlookup_args *ap)
@@ -112,7 +113,19 @@ static int
 squashfs_reclaim(struct vop_reclaim_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+	struct sqsh_inode *inode;
+	struct vnode *vp;
+
+	vp = ap->a_vp;
+	inode = vp->v_data;
+
+	vfs_hash_remove(vp);
+
+	inode->vnode = NULLVP;
+	vp->v_data = NULL;
+
+	TRACE("%s: completed",__func__);
+	return (0);
 }
 
 static int
