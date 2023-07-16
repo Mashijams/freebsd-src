@@ -40,6 +40,8 @@ struct sqsh_inode {
 	int						nlink;
 	uint32_t				xattr;
 
+	enum vtype				type;
+
 	struct sqsh_block_run	next;
 
 	union {
@@ -79,7 +81,7 @@ void		sqsh_metadata_run_inode(struct sqsh_block_run *cur, uint64_t id,
 sqsh_err	sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				uint64_t id);
 
-mode_t		sqsh_mode(int inode_type);
+enum vtype	sqsh_inode_type(int inode_type);
 
 sqsh_err	sqsh_get_inode_id(struct sqsh_mount *ump, uint16_t idx, uint32_t *id);
 

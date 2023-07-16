@@ -149,33 +149,33 @@ sqsh_metadata_run_inode(struct sqsh_block_run *cur, uint64_t id, off_t base)
 	cur->offset = id & 0xffff;
 }
 
-mode_t
-sqsh_mode(int inode_type)
+enum vtype
+sqsh_inode_type(int inode_type)
 {
 	switch (inode_type) {
 		case SQUASHFS_DIR_TYPE:
 		case SQUASHFS_LDIR_TYPE:
-			return (S_IFDIR);
+			return (VDIR);
 		case SQUASHFS_REG_TYPE:
 		case SQUASHFS_LREG_TYPE:
-			return (S_IFREG);
+			return (VREG);
 		case SQUASHFS_SYMLINK_TYPE:
 		case SQUASHFS_LSYMLINK_TYPE:
-			return (S_IFLNK);
+			return (VLNK);
 		case SQUASHFS_BLKDEV_TYPE:
 		case SQUASHFS_LBLKDEV_TYPE:
-			return (S_IFBLK);
+			return (VBLK);
 		case SQUASHFS_CHRDEV_TYPE:
 		case SQUASHFS_LCHRDEV_TYPE:
-			return (S_IFCHR);
+			return (VCHR);
 		case SQUASHFS_FIFO_TYPE:
 		case SQUASHFS_LFIFO_TYPE:
-			return (S_IFIFO);
+			return (VFIFO);
 		case SQUASHFS_SOCKET_TYPE:
 		case SQUASHFS_LSOCKET_TYPE:
-			return (S_IFSOCK);
+			return (VSOCK);
 	}
-	return (0);
+	return (VBAD);
 }
 
 sqsh_err
@@ -259,7 +259,7 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	if (err != SQFS_OK)
 		return (err);
 	swapendian_base_inode(&inode->base);
-	inode->base.mode |= sqsh_mode(inode->base.inode_type);
+	inode->type = sqsh_inode_type(inode->base.inode_type);
 
 	switch (inode->base.inode_type) {
 		case SQUASHFS_REG_TYPE: {
