@@ -64,14 +64,26 @@ static int
 squashfs_open(struct vop_open_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_inode *inode;
+	struct vnode *vp;
+
+	vp = ap->a_vp;
+	MPASS(VOP_ISLOCKED(vp));
+	inode = vp->v_data;
+
+	if (vp->v_type != VREG && vp->v_type != VDIR)
+		return (EOPNOTSUPP);
+
+	vnode_create_vobject(vp, inode->size, ap->a_td);
+	return (0);
 }
 
 static int
 squashfs_close(struct vop_close_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+	return (0);
 }
 
 static int
