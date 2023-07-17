@@ -435,7 +435,7 @@ squashfs_vget(struct mount *mp, ino_t ino, int lkflags, struct vnode **vpp)
 	}
 
 	vp->v_data = inode;
-	vp->v_type = inode->base.inode_type;
+	vp->v_type = inode->type;
 	inode->vnode = vp;
 
 	lockmgr(vp->v_vnlock, lkflags, NULL);

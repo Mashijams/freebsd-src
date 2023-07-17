@@ -39,6 +39,7 @@ struct sqsh_inode {
 	struct sqsh_base_inode	base;
 	int						nlink;
 	uint32_t				xattr;
+	size_t					size;
 
 	enum vtype				type;
 
@@ -49,17 +50,14 @@ struct sqsh_inode {
 			int				major;
 			int				minor;
 		} dev;
-		size_t				symlink_size;
 		struct {
 			uint64_t		start_block;
-			uint64_t		file_size;
 			uint32_t		frag_idx;
 			uint32_t		frag_off;
 		} reg;
 		struct {
 			uint32_t		start_block;
 			uint16_t		offset;
-			uint32_t		dir_size;
 			uint16_t		idx_count;
 			uint32_t		parent_inode;
 		} dir;

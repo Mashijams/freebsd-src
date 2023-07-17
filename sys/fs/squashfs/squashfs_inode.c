@@ -345,7 +345,7 @@ sqsh_init_reg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	/* initialise inode reg fields */
 	inode->nlink				=	1;
 	inode->xtra.reg.start_block	=	temp.start_block;
-	inode->xtra.reg.file_size	=	temp.file_size;
+	inode->size					=	temp.file_size;
 	inode->xtra.reg.frag_idx	=	temp.fragment;
 	inode->xtra.reg.frag_off	=	temp.offset;
 
@@ -366,7 +366,7 @@ sqsh_init_lreg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	/* initialise inode lreg fields */
 	inode->nlink				=	temp.nlink;
 	inode->xtra.reg.start_block	=	temp.start_block;
-	inode->xtra.reg.file_size	=	temp.file_size;
+	inode->size					=	temp.file_size;
 	inode->xtra.reg.frag_idx	=	temp.fragment;
 	inode->xtra.reg.frag_off	=	temp.offset;
 	inode->xattr				=	temp.xattr;
@@ -389,7 +389,7 @@ sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->nlink					=	temp.nlink;
 	inode->xtra.dir.start_block 	=	temp.start_block;
 	inode->xtra.dir.offset			=	temp.offset;
-	inode->xtra.dir.dir_size		=	temp.file_size;
+	inode->size						=	temp.file_size;
 	inode->xtra.dir.idx_count		=	0;
 	inode->xtra.dir.parent_inode	=	temp.parent_inode;
 
@@ -411,7 +411,7 @@ sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->nlink					=	temp.nlink;
 	inode->xtra.dir.start_block 	=	temp.start_block;
 	inode->xtra.dir.offset			=	temp.offset;
-	inode->xtra.dir.dir_size		=	temp.file_size;
+	inode->size						=	temp.file_size;
 	inode->xtra.dir.idx_count		=	temp.i_count;
 	inode->xtra.dir.parent_inode	=	temp.parent_inode;
 	inode->xattr					=	temp.xattr;
@@ -431,7 +431,7 @@ sqsh_init_symlink_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 
 	/* initialise inode dir fields */
 	inode->nlink				=	le32toh(temp.nlink);
-	inode->xtra.symlink_size	=	le32toh(temp.symlink_size);
+	inode->size					=	le32toh(temp.symlink_size);
 
 	return (SQFS_OK);
 }
@@ -445,6 +445,9 @@ sqsh_init_dev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
 	if (err != SQFS_OK)
 		return (err);
+
+	/* set size of inode data to 0 */
+	inode->size				=	0;
 
 	/* initialise inode nlink field */
 	inode->nlink			=	le32toh(temp.nlink);
@@ -469,6 +472,9 @@ sqsh_init_ldev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	if (err != SQFS_OK)
 		return (err);
 
+	/* set size of inode data to 0 */
+	inode->size				=	0;
+
 	/* initialise inode fields */
 	inode->nlink			=	le32toh(temp.nlink);
 	inode->xattr			=	le32toh(temp.xattr);
@@ -492,6 +498,9 @@ sqsh_init_ipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
 	if (err != SQFS_OK)
 		return (err);
 
+	/* set size of inode data to 0 */
+	inode->size				=	0;
+
 	/* initialise inode nlink field */
 	inode->nlink			=	le32toh(temp.nlink);
 
@@ -507,6 +516,9 @@ sqsh_init_lipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
 	if (err != SQFS_OK)
 		return (err);
+
+	/* set size of inode data to 0 */
+	inode->size				=	0;
 
 	/* initialise inode nlink field */
 	inode->nlink			=	le32toh(temp.nlink);
