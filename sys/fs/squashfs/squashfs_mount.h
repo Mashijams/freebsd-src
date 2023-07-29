@@ -53,9 +53,6 @@ MP_TO_SQSH_MOUNT(struct mount *mp)
 	return (mp->mnt_data);
 }
 
-/* Define all accepted compressions */
-#define	SQUASHFS_ZLIB
-
 #endif	/* _KERNEL */
 
 #endif	/* SQUASHFS_MOUNT_H */
