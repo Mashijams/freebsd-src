@@ -58,6 +58,10 @@
 
 #define	SQUASHFS_IO_SIZE			65536
 
+#define	SQUASHFS_TYPE_MIN_VALID		1
+#define	SQUASHFS_TYPE_MAX_VALID		14
+#define	SQUASHFS_INODE_MIN_COUNT	1
+
 /* Filesystem flags */
 #define	SQUASHFS_NOI				0
 #define	SQUASHFS_NOD				1
