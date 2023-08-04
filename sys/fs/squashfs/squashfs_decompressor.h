@@ -2,7 +2,8 @@
  * SPDX-License-Identifier: BSD-2-Clause
  *
  * Copyright (c) 2023 Raghav Sharma <raghav@freebsd.org>
- * All rights reserved.
+ * Parts Copyright (c) 2014 Dave Vasilevsky <dave@vasilevsky.ca>
+ * Obtained from the squashfuse project
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,32 +26,43 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $FreeBSD$
  */
 
-#ifndef	SQUASHFS_MOUNT_H
-#define	SQUASHFS_MOUNT_H
+#ifndef	SQUASHFS_DECOMPRESSOR_H
+#define	SQUASHFS_DECOMPRESSOR_H
 
-#ifdef	_KERNEL
+#include "opt_gzio.h"
+#include "opt_zstdio.h"
 
-/* This structure describes squashfs mount structure data */
-struct sqsh_mount {
-	struct mount					*um_mountp;
-	struct vnode					*um_vp;
-	struct sqsh_sb					sb;
-	struct sqsh_table				id_table;
-	struct sqsh_table				frag_table;
-	struct sqsh_table				export_table;
-	const struct sqsh_decompressor	*decompressor;
+struct sqsh_decompressor {
+	sqsh_err (*decompressor)(void* input, size_t input_size,
+		void* output, size_t* output_size);
+
+	int		id;
+	char*	name;
+	int		supported;
 };
 
-static inline struct sqsh_mount *
-MP_TO_SQSH_MOUNT(struct mount *mp)
-{
-	MPASS(mp != NULL && mp->mnt_data != NULL);
-	return (mp->mnt_data);
-}
+#ifdef	GZIO
+extern const struct sqsh_decompressor sqsh_zlib_decompressor;
+#endif	/* GZIO */
 
-#endif	/* _KERNEL */
+#ifdef	LZMA
+extern const struct sqsh_decompressor sqsh_lzma_decompressor;
+#endif	/* LZMA */
 
-#endif	/* SQUASHFS_MOUNT_H */
+#ifdef	LZO
+extern const struct sqsh_decompressor sqsh_lzo_decompressor;
+#endif	/* LZO */
+
+#ifdef	LZ4
+extern const struct sqsh_decompressor sqsh_lz4_decompressor;
+#endif	/* LZ4 */
+
+#ifdef	ZSTDIO
+extern const struct sqsh_decompressor sqsh_zstd_decompressor;
+#endif	/* ZSTDIO */
+
+const struct sqsh_decompressor	*sqsh_lookup_decompressor(int id);
+
+#endif	/* SQUASHFS_DECOMPRESSOR_H */
