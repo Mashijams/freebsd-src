@@ -5,7 +5,8 @@ SRCS=	\
 	squashfs_decompressor.c \
 	squashfs_block.c \
 	squashfs_inode.c \
-	squashfs_io.c
+	squashfs_io.c	\
+	squashfs_dir.c
 
 SRCS+=	vnode_if.h
 SRCS+=	opt_gzio.h
