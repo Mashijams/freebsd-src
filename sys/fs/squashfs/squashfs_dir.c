@@ -59,10 +59,67 @@ void	swapendian_dir_header(struct sqsh_dir_header *hdr);
 void	swapendian_dir_index(struct sqsh_dir_index *idx);
 
 sqsh_err
-sqsh_dir_metadata_read(struct sqsh_mount *ump, struct sqsh_dir *dir, void *buf, size_t size)
+sqsh_dir_f_header(struct sqsh_mount *ump, struct sqsh_block_run *cur,
+	struct sqsh_dir_index *idx, bool *stop, void *arg)
+{
+	off_t offset = *(off_t*)arg;
+
+	if (idx->index >= offset) {
+		*stop = true;
+		return SQFS_OK;
+	}
+
+	return sqsh_metadata_get(ump, cur, NULL, index->size + 1);
+}
+
+sqsh_err
+sqsh_dir_ff_header(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	struct sqsh_dir *dir, void *arg)
+{
+	struct sqsh_dir_index idx;
+	sqsh_block_run cur;
+	size_t count;
+
+	cur		= inode->next;
+	count	= inode->xtra.dir.idx_count;
+
+	if (count == 0)
+		return SQFS_OK;
+
+	while (count--) {
+		sqsh_err err;
+		bool stop;
+
+		stop = false;
+
+		err = sqsh_metadata_get(ump, &cur, &idx, sizeof(idx));
+
+		if (err != SQFS_OK)
+			return err;
+
+		swapendian_dir_index(&idx);
+
+		err = sqsh_dir_f_header(ump, &cur, &idx, &stop, arg);
+
+		if (err != SQFS_OK)
+			return err;
+		if (stop)
+			break;
+
+		dir->cur.block = idx.start_block + ump->sb.directory_table_start;
+		dir->offset = idx.index;
+	}
+
+	dir->cur.offset = (dir->cur.offset + dir->offset) % SQUASHFS_METADATA_SIZE;
+	return SQFS_OK;
+}
+
+sqsh_err
+sqsh_dir_metadata_read(struct sqsh_mount *ump, struct sqsh_dir *dir, void *buf,
+	size_t size)
 {
 	dir->offset += size;
-	return sqsh_metadata_get(fs, &dir->cur, buf, size);
+	return sqsh_metadata_get(ump, &dir->cur, buf, size);
 }
 
 void

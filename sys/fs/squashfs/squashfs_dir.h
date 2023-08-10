@@ -47,7 +47,14 @@ struct sqsh_dir_entry {
 	off_t		next_offset;
 };
 
-sqsh_err	sqsh_dir_metadata_read(sqsh_mount *mnt, sqsh_dir *dir, void *buf,
-				size_t size);
+/* Directory indexing helper functions */
+sqsh_err	sqsh_dir_f_header(struct sqsh_mount *ump, struct sqsh_block_run *cur,
+				struct sqsh_dir_index *idx, bool *stop, void *arg);
+sqsh_err	sqsh_dir_ff_header(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				struct sqsh_dir *dir, void *arg);
+
+
+sqsh_err	sqsh_dir_metadata_read(struct sqsh_mount *mnt, struct sqsh_dir *dir,
+				void *buf, size_t size);
 
 #endif /* SQUASHFS_DIR_H */
