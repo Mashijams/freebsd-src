@@ -41,7 +41,6 @@ struct sqsh_dir {
 struct sqsh_dir_entry {
 	uint64_t	inode_id;
 	uint32_t	inode_number;
-	int			type;
 	char		*name;
 	size_t		name_size;
 	off_t		offset;
