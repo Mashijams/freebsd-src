@@ -55,9 +55,28 @@
 #include <squashfs_block.h>
 #include <squashfs_dir.h>
 
+void	swapendian_dir_header(struct sqsh_dir_header *hdr);
+void	swapendian_dir_index(struct sqsh_dir_index *idx);
+
 sqsh_err
-sqsh_dir_metadata_read(sqsh_mount *ump, sqsh_dir *dir, void *buf, size_t size)
+sqsh_dir_metadata_read(struct sqsh_mount *ump, struct sqsh_dir *dir, void *buf, size_t size)
 {
 	dir->offset += size;
 	return sqsh_metadata_get(fs, &dir->cur, buf, size);
+}
+
+void
+swapendian_dir_header(struct sqsh_dir_header *hdr)
+{
+	hdr->count			=	le32toh(hdr->count);
+	hdr->start_block	=	le32toh(hdr->start_block);
+	hdr->inode_number	=	le32toh(hdr->inode_number);
+}
+
+void
+swapendian_dir_index(struct sqsh_dir_index *idx)
+{
+	idx->index			=	le32toh(idx->index);
+	idx->start_block	=	le32toh(idx->start_block);
+	idx->size			=	le32toh(idx->size);
 }

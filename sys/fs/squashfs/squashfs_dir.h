@@ -47,7 +47,7 @@ struct sqsh_dir_entry {
 	off_t		next_offset;
 };
 
-sqsh_err sqsh_dir_metadata_read(sqsh_mount *mnt, sqsh_dir *dir, void *buf,
-	size_t size);
+sqsh_err	sqsh_dir_metadata_read(sqsh_mount *mnt, sqsh_dir *dir, void *buf,
+				size_t size);
 
 #endif /* SQUASHFS_DIR_H */
