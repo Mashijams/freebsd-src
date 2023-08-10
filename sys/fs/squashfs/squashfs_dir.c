@@ -28,3 +28,36 @@
  *
  */
 
+#include <sys/param.h>
+#include <sys/systm.h>
+#include <sys/buf.h>
+#include <sys/conf.h>
+#include <sys/fcntl.h>
+#include <sys/libkern.h>
+#include <sys/limits.h>
+#include <sys/lock.h>
+#include <sys/malloc.h>
+#include <sys/mount.h>
+#include <sys/mutex.h>
+#include <sys/namei.h>
+#include <sys/priv.h>
+#include <sys/proc.h>
+#include <sys/queue.h>
+#include <sys/sbuf.h>
+#include <sys/stat.h>
+#include <sys/uio.h>
+#include <sys/vnode.h>
+
+#include <squashfs.h>
+#include <squashfs_io.h>
+#include <squashfs_mount.h>
+#include <squashfs_inode.h>
+#include <squashfs_block.h>
+#include <squashfs_dir.h>
+
+sqsh_err
+sqsh_dir_metadata_read(sqsh_mount *ump, sqsh_dir *dir, void *buf, size_t size)
+{
+	dir->offset += size;
+	return sqsh_metadata_get(fs, &dir->cur, buf, size);
+}

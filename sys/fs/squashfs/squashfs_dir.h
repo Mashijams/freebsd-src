@@ -31,6 +31,24 @@
 #ifndef SQUASHFS_DIR_H
 #define SQUASHFS_DIR_H
 
+struct sqsh_dir {
+	sqsh_block_run			cur;
+	off_t					offset;
+	off_t					total;
+	struct sqsh_dir_header	header;
+};
 
+struct sqsh_dir_entry {
+	uint64_t	inode_id;
+	uint32_t	inode_number;
+	int			type;
+	char		*name;
+	size_t		name_size;
+	off_t		offset;
+	off_t		next_offset;
+};
+
+sqsh_err sqsh_dir_metadata_read(sqsh_mount *mnt, sqsh_dir *dir, void *buf,
+	size_t size);
 
 #endif /* SQUASHFS_DIR_H */
