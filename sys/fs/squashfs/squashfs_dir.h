@@ -47,14 +47,29 @@ struct sqsh_dir_entry {
 	off_t		next_offset;
 };
 
+/* Helper for sqsh_dir_lookup */
+struct sqsh_dir_ff_name {
+	const char	*cmp;
+	size_t		cmplen;
+	char		*name;
+};
+
+/* Initialise directory from inode */
+sqsh_err	sqsh_dir_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				struct sqsh_dir *dir);
+
 /* Directory indexing helper functions */
 sqsh_err	sqsh_dir_f_header(struct sqsh_mount *ump, struct sqsh_block_run *cur,
 				struct sqsh_dir_index *idx, bool *stop, void *arg);
 sqsh_err	sqsh_dir_ff_header(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				struct sqsh_dir *dir, void *arg);
 
-
 sqsh_err	sqsh_dir_metadata_read(struct sqsh_mount *mnt, struct sqsh_dir *dir,
 				void *buf, size_t size);
+
+/* Directory traverse helper functions for vnops readdir and lookup */
+sqsh_err	sqsh_dir_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				const char *name, size_t namelen, struct sqsh_dir_entry *entry,
+				bool *found);
 
 #endif /* SQUASHFS_DIR_H */

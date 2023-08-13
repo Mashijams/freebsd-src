@@ -59,6 +59,29 @@ void	swapendian_dir_header(struct sqsh_dir_header *hdr);
 void	swapendian_dir_index(struct sqsh_dir_index *idx);
 
 sqsh_err
+sqsh_dir_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	struct sqsh_dir *dir)
+{
+	memset(dir, 0, sizeof(*dir));
+	dir->cur.block = inode->xtra.dir.start_block +
+		ump->sb.directory_table_start;
+	dir->cur.offset = inode->xtra.dir.offset;
+	dir->offset = 0;
+
+	/*
+	 * For better compression '.' and '..' entries
+	 * are not there in squashfs but Inode entires
+	 * does keep directory count including them.
+	 * Here we are just chekcing for that and updating
+	 * dir count accordingly.
+	 */
+	dir->total = inode->xtra.dir.dir_size <= 3 ? 0 :
+                inode->xtra.dir.dir_size - 3;
+
+	return SQFS_OK;
+}
+
+sqsh_err
 sqsh_dir_f_header(struct sqsh_mount *ump, struct sqsh_block_run *cur,
 	struct sqsh_dir_index *idx, bool *stop, void *arg)
 {
@@ -120,6 +143,13 @@ sqsh_dir_metadata_read(struct sqsh_mount *ump, struct sqsh_dir *dir, void *buf,
 {
 	dir->offset += size;
 	return sqsh_metadata_get(ump, &dir->cur, buf, size);
+}
+
+sqsh_err
+sqsh_dir_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode, const char *name,
+	size_t namelen, struct sqsh_dir_entry *entry, bool *found)
+{
+
 }
 
 void
