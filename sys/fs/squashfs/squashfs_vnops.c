@@ -133,7 +133,33 @@ static int
 squashfs_getattr(struct vop_getattr_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_inode *inode;
+	struct vnode *vp;
+	struct vattr *vap;
+
+	vp		=	ap->a_vp;
+	vap		=	ap->a_vap;
+	inode	=	vp->v_data;
+
+	/* fill up vattr for squashfs inode */
+	vap->va_type		=	vp->v_type;
+	vap->va_mode		=	inode->base.mode;
+	vap->va_nlink		=	inode->nlink;
+	vap->va_gid			=	inode->base.guid;
+	vap->va_uid			=	inode->base.uid;
+	vap->va_fsid		=	vp->v_mount->mnt_stat.f_fsid.val[0];
+	vap->va_size		=	inode->size;
+	vap->va_blocksize	=	vp->v_mount->mnt_stat.f_iosize;
+	vap->va_atime		=	inode->base.mtime;
+	vap->va_ctime		=	inode->base.mtime;
+	vap->va_mtime		=	inode->base.mtime;
+	vap->va_birthtime	=	inode->base.mtime;
+	vap->va_rdev		=	(vp->v_type == VBLK || vp->v_type == VCHR) ?
+	    						tnp->rdev : NODEV;
+	vap->va_filerev		=	0;
+
+	return (0);
 }
 
 static int
