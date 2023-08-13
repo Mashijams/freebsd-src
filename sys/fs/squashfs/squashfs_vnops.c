@@ -90,7 +90,43 @@ static int
 squashfs_access(struct vop_access_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_inode *inode;
+	struct vnode *vp;
+	accmode_t accmode;
+	struct ucred *cred;
+	int error;
+
+	vp = ap->a_vp;
+	accmode = ap->a_accmode;
+	cred = ap->a_cred;
+
+	MPASS(VOP_ISLOCKED(vp));
+	inode = vp->v_data;
+
+	switch (vp->v_type) {
+	case VDIR:
+	case VLNK:
+	case VREG:
+		if ((accmode & VWRITE) != 0)
+			return (EROFS);
+		break;
+	case VBLK:
+	case VCHR:
+	case VFIFO:
+	case VSOCK:
+		break;
+	default:
+		return (EINVAL);
+	}
+
+	if ((accmode & VWRITE) != 0)
+		return (EPERM);
+
+	error = vaccess(vp->v_type, inode->base.mode, inode->base.uid,
+	    inode->base.guid, accmode, cred);
+
+	return (error);
 }
 
 static int
