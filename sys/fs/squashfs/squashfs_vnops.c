@@ -206,7 +206,25 @@ static int
 squashfs_print(struct vop_print_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_inode *inode;
+	struct vnode *vp;
+
+	vp = ap->a_vp;
+	inode = vp->v_data;
+
+	printf("tag squashfs, squashfs_inode %p, links %lu\n",
+	    inode, (unsigned long)inode->nlink);
+	printf("\tmode 0%o, owner %d, group %d, size %zd\n",
+	    inode->base.mode, inode->base.uid, inode->base.guid,
+	    inode->size);
+
+	if (vp->v_type == VFIFO)
+		fifo_printinfo(vp);
+
+	printf("\n");
+
+	return (0);
 }
 
 static int
