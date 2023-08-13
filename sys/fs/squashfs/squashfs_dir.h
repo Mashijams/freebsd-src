@@ -48,7 +48,7 @@ struct sqsh_dir_entry {
 };
 
 /* Helper for sqsh_dir_lookup */
-struct sqsh_dir_ff_name {
+struct sqsh_dir_ff_name_t {
 	const char	*cmp;
 	size_t		cmplen;
 	char		*name;

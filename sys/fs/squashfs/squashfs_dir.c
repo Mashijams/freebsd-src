@@ -195,7 +195,34 @@ sqsh_err
 sqsh_dir_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode, const char *name,
 	size_t namelen, struct sqsh_dir_entry *entry, bool *found)
 {
+	sqfs_err err;
+	sqfs_dir dir;
+	sqfs_dir_ff_name_t arg;
 
+	*found = false;
+
+	err = sqsh_dir_init(ump, inode, &dir, 0);
+
+	if (err != SQFS_OK)
+		return err;
+
+	/* Fast forward to header */
+	arg.cmp		=	name;
+	arg.cmplen	=	namelen;
+	arg.name	=	entry->name;
+
+	err = sqsh_dir_ff_header(ump, inode, &dir, &arg);
+	if (err != SQFS_OK)
+		return err;
+
+	/* Iterate to find the right entry */
+	while (sqsh_dir_getnext(fs, &dir, entry, &err) == SQFS_OK) {
+		int order = strncmp(entry->name, name, namelen);
+		if (order == 0 && entry->name_size == namelen)
+			*found = true;
+	}
+
+	return SQFS_OK;
 }
 
 void
