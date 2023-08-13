@@ -32,7 +32,7 @@
 #define SQUASHFS_DIR_H
 
 struct sqsh_dir {
-	sqsh_block_run			cur;
+	struct sqsh_block_run	cur;
 	off_t					offset;
 	off_t					total;
 	struct sqsh_dir_header	header;

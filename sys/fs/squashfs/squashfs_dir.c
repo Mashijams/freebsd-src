@@ -76,8 +76,7 @@ sqsh_dir_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	 * Here we are just chekcing for that and updating
 	 * dir count accordingly.
 	 */
-	dir->total = inode->xtra.dir.dir_size <= 3 ? 0 :
-                inode->xtra.dir.dir_size - 3;
+	dir->total = inode->size <= 3 ? 0 : inode->size - 3;
 
 	return SQFS_OK;
 }
@@ -93,7 +92,7 @@ sqsh_dir_f_header(struct sqsh_mount *ump, struct sqsh_block_run *cur,
 		return SQFS_OK;
 	}
 
-	return sqsh_metadata_get(ump, cur, NULL, index->size + 1);
+	return sqsh_metadata_get(ump, cur, NULL, idx->size + 1);
 }
 
 sqsh_err
@@ -101,7 +100,7 @@ sqsh_dir_ff_header(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	struct sqsh_dir *dir, void *arg)
 {
 	struct sqsh_dir_index idx;
-	sqsh_block_run cur;
+	struct sqsh_block_run cur;
 	size_t count;
 
 	cur		= inode->next;
@@ -177,9 +176,8 @@ sqsh_dir_getnext(struct sqsh_mount *ump, struct sqsh_dir *dir,
 	--(dir->header.count);
 
 	/* Initialise new entry fields */
-	entry->type			=	e.type;
 	entry->name_size	=	e.size + 1;
-	entry->inode		=	((uint64_t)dir->header.start_block << 16) + e.offset;
+	entry->inode_id		=	((uint64_t)dir->header.start_block << 16) + e.offset;
 	entry->inode_number	=	dir->header.inode_number + (int16_t)e.inode_number;
 
 	err = sqsh_dir_metadata_read(ump, dir, entry->name, entry->name_size);
@@ -195,13 +193,13 @@ sqsh_err
 sqsh_dir_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode, const char *name,
 	size_t namelen, struct sqsh_dir_entry *entry, bool *found)
 {
-	sqfs_err err;
-	sqfs_dir dir;
-	sqfs_dir_ff_name_t arg;
+	sqsh_err err;
+	struct sqsh_dir dir;
+	struct sqsh_dir_ff_name_t arg;
 
 	*found = false;
 
-	err = sqsh_dir_init(ump, inode, &dir, 0);
+	err = sqsh_dir_init(ump, inode, &dir);
 
 	if (err != SQFS_OK)
 		return err;
@@ -216,7 +214,7 @@ sqsh_dir_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode, const char *na
 		return err;
 
 	/* Iterate to find the right entry */
-	while (sqsh_dir_getnext(fs, &dir, entry, &err) == SQFS_OK) {
+	while (sqsh_dir_getnext(ump, &dir, entry) == SQFS_OK) {
 		int order = strncmp(entry->name, name, namelen);
 		if (order == 0 && entry->name_size == namelen)
 			*found = true;
