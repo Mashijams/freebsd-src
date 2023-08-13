@@ -259,7 +259,7 @@ struct sqsh_ldir_inode {
 	uint32_t		xattr;
 };
 
-struct sqsh_dir_entry {
+struct squashfs_dir_entry {
 	uint16_t		offset;
 	uint16_t		inode_number;
 	uint16_t		type;
@@ -303,12 +303,13 @@ extern struct vop_vector squashfs_vnodeops;
 #define	ERROR(x...)	printf("\n\033[0;31msquashfs:\33[0m " x)
 
 typedef enum {
-	SQFS_OK,			/* everything fine */
-	SQFS_BADFORMAT,		/* unsupported file format */
-	SQFS_BADVERSION,	/* unsupported squashfs version */
-	SQFS_BADCOMP,		/* unsupported compression method */
-	SQFS_UNSUP,			/* unsupported feature */
-	SQFS_ERR			/* error in operation */
+	SQFS_OK,				/* everything fine */
+	SQFS_BADFORMAT,			/* unsupported file format */
+	SQFS_BADVERSION,		/* unsupported squashfs version */
+	SQFS_BADCOMP,			/* unsupported compression method */
+	SQFS_UNSUP,				/* unsupported feature */
+	SQFS_END_OF_DIRECTORY,	/* reached end of directory */
+	SQFS_ERR				/* error in operation */
 } sqsh_err;
 
 #endif	/* SQUASHFS_H */

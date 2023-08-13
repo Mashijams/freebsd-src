@@ -68,6 +68,8 @@ sqsh_err	sqsh_dir_metadata_read(struct sqsh_mount *mnt, struct sqsh_dir *dir,
 				void *buf, size_t size);
 
 /* Directory traverse helper functions for vnops readdir and lookup */
+sqsh_err	sqsh_dir_getnext(struct sqsh_mount *ump, struct sqsh_dir *dir,
+				struct sqsh_dir_entry *entry);
 sqsh_err	sqsh_dir_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				const char *name, size_t namelen, struct sqsh_dir_entry *entry,
 				bool *found);

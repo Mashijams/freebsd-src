@@ -57,6 +57,7 @@
 
 void	swapendian_dir_header(struct sqsh_dir_header *hdr);
 void	swapendian_dir_index(struct sqsh_dir_index *idx);
+void	swapendian_dir_entry(struct squashfs_dir_entry *entry);
 
 sqsh_err
 sqsh_dir_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
@@ -146,6 +147,51 @@ sqsh_dir_metadata_read(struct sqsh_mount *ump, struct sqsh_dir *dir, void *buf,
 }
 
 sqsh_err
+sqsh_dir_getnext(struct sqsh_mount *ump, struct sqsh_dir *dir,
+	struct sqsh_dir_entry *entry)
+{
+	struct squashfs_dir_entry e;
+	sqsh_err err;
+
+	entry->offset = dir->offset;
+
+	while (dir->header.count == 0) {
+		if (dir->offset >= dir->total) {
+			err = SQFS_END_OF_DIRECTORY;
+			return err;
+		}
+
+		err = sqsh_dir_metadata_read(ump, dir, &dir->header, sizeof(dir->header));
+
+		if (err != SQFS_OK)
+			return err;
+		swapendian_dir_header(&dir->header);
+		++(dir->header.count);
+	}
+
+	err = sqsh_dir_metadata_read(ump, dir, &e, sizeof(e));
+
+	if (err != SQFS_OK)
+		return err;
+	swapendian_dir_entry(&e);
+	--(dir->header.count);
+
+	/* Initialise new entry fields */
+	entry->type			=	e.type;
+	entry->name_size	=	e.size + 1;
+	entry->inode		=	((uint64_t)dir->header.start_block << 16) + e.offset;
+	entry->inode_number	=	dir->header.inode_number + (int16_t)e.inode_number;
+
+	err = sqsh_dir_metadata_read(ump, dir, entry->name, entry->name_size);
+	if (err != SQFS_OK)
+		return err;
+
+	entry->next_offset = dir->offset;
+
+	return SQFS_OK;
+}
+
+sqsh_err
 sqsh_dir_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode, const char *name,
 	size_t namelen, struct sqsh_dir_entry *entry, bool *found)
 {
@@ -166,4 +212,13 @@ swapendian_dir_index(struct sqsh_dir_index *idx)
 	idx->index			=	le32toh(idx->index);
 	idx->start_block	=	le32toh(idx->start_block);
 	idx->size			=	le32toh(idx->size);
+}
+
+void
+swapendian_dir_entry(struct squashfs_dir_entry *entry)
+{
+	entry->offset		=	le16toh(entry->offset);
+	entry->inode_number	=	le16toh(entry->inode_number);
+	entry->type			=	le16toh(entry->type);
+	entry->size			=	le16toh(entry->size);
 }
