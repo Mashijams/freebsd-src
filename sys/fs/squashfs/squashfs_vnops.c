@@ -238,7 +238,7 @@ squashfs_readdir(struct vop_readdir_args *ap)
 	TRACE("%s:",__func__);
 
 	struct sqsh_mount *ump;
-	struct dirent cde = { };
+	struct dirent cde;
 	struct sqsh_inode *inode;
 	struct vnode *vp;
 	struct uio *uio;
@@ -374,6 +374,8 @@ full:
 		error = (ndirents == 0) ? EINVAL : 0;
 done:
 	TRACE("%s: %u entries written\n", __func__, ndirents);
+	/* Restart the directory */
+	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
 
 	if (err == SQFS_END_OF_DIRECTORY)
 		uio->uio_offset = SQUASHFS_COOKIE_EOF;
