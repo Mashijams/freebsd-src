@@ -168,10 +168,11 @@ squashfs_lookup(struct vop_cachedlookup_args *ap)
 {
 	TRACE("%s:",__func__);
 
-	struct squashfs_mount *ump;
+	struct sqsh_mount *ump;
 	struct sqsh_inode *inode;
 	struct componentname *cnp;
 	struct vnode *dvp, **vpp;
+	int error;
 	sqsh_err err;
 
 	dvp = ap->a_dvp;
@@ -193,7 +194,7 @@ squashfs_lookup(struct vop_cachedlookup_args *ap)
 
 		/* Get inode number of parent inode */
 		uint64_t i_ino;
-		err = sqsh_export_inode(ump, inode->xtra.parent_inode, &i_ino);
+		err = sqsh_export_inode(ump, inode->xtra.dir.parent_inode, &i_ino);
 		if (err != SQFS_OK)
 			return (EINVAL);
 
@@ -219,7 +220,7 @@ squashfs_lookup(struct vop_cachedlookup_args *ap)
 		if (found == false)
 			return (ENOENT);
 
-		error = VFS_VGET(ump->um_mountp, entry->inode_id, cnp->cn_lkflags, vpp);
+		error = VFS_VGET(ump->um_mountp, entry.inode_id, cnp->cn_lkflags, vpp);
 		if (error != 0)
 			return (error);
 	}
@@ -246,9 +247,9 @@ squashfs_readdir(struct vop_readdir_args *ap)
 	uint64_t **cookies;
 	int *ncookies;
 	off_t off;
-	u_int idx, ndirents;
+	u_int ndirents;
 	int error;
-	sqsh_err err;
+	sqsh_err err = SQFS_OK;
 
 	vp = ap->a_vp;
 	uio = ap->a_uio;
@@ -291,7 +292,7 @@ squashfs_readdir(struct vop_readdir_args *ap)
 		MPASS(inode->xtra.dir.parent_inode == ump->sb.inodes + 1);
 		/* Get inode number of parent inode */
 		uint64_t i_ino;
-		err = sqsh_export_inode(ump, inode->xtra.parent_inode, &i_ino);
+		err = sqsh_export_inode(ump, inode->xtra.dir.parent_inode, &i_ino);
 		if (err != SQFS_OK)
 			return (EINVAL);
 		cde.d_fileno = i_ino;
@@ -308,7 +309,7 @@ squashfs_readdir(struct vop_readdir_args *ap)
 		if (error)
 			return (error);
 		/* next is first child */
-		err = sqsh_dir_getnext(ump, inode->xtra.dir.d, &entry);
+		err = sqsh_dir_getnext(ump, &inode->xtra.dir.d, &entry);
 		if (err == SQFS_END_OF_DIRECTORY)
 			goto done;
 		if (err != SQFS_OK) {
@@ -358,7 +359,7 @@ squashfs_readdir(struct vop_readdir_args *ap)
 			goto done;
 		ndirents++;
 		/* next sibling */
-		err = sqsh_dir_getnext(ump, inode->xtra.dir.d, &entry);
+		err = sqsh_dir_getnext(ump, &inode->xtra.dir.d, &entry);
 		if (err == SQFS_END_OF_DIRECTORY)
 			goto done;
 		if (err != SQFS_OK) {
@@ -379,7 +380,7 @@ done:
 
 	if (eofflag != NULL) {
 		TRACE("%s: Setting EOF flag\n", __func__);
-		*eofflag = (error == 0 && err == SQFS_END_OF_DIRECTORY);
+		*eofflag = (error == 0);
 	}
 
 	return (error);

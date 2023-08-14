@@ -55,7 +55,7 @@
 
 
 /* Support for zlib compressor */
-#ifndef	GZIO
+#ifndef	SQUASHFS_ZLIB
 
 static const struct sqsh_decompressor sqsh_zlib_decompressor = {
 	.decompressor	=	NULL,
@@ -64,9 +64,9 @@ static const struct sqsh_decompressor sqsh_zlib_decompressor = {
 	.supported		=	0
 };
 
-#else	/* GZIO */
+#else	/* !SQUASHFS_ZLIB */
 
-#include <contrib/zlib/zlib.h>
+#include <zlib.h>
 
 static sqsh_err
 zlib_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
@@ -89,10 +89,10 @@ const struct sqsh_decompressor sqsh_zlib_decompressor = {
 	.supported		=	1
 };
 
-#endif	/* ZLIB */
+#endif	/* SQUASHFS_ZLIB */
 
 /* lzma decompression support */
-#ifndef	LZMA
+#ifndef	SQUASHFS_LZMA
 
 static const struct sqsh_decompressor sqsh_lzma_decompressor = {
 	.decompressor	=	NULL,
@@ -101,10 +101,38 @@ static const struct sqsh_decompressor sqsh_lzma_decompressor = {
 	.supported		=	0
 };
 
-#endif /* LZMA */
+#else	/* !SQUASHFS_LZMA */
+
+#include <lzma.h>
+
+static sqsh_err
+lzma_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	uint64_t memlimit;
+	size_t inpos, outpos;
+	lzma_ret err;
+
+	memlimit = UINT64_MAX;
+	inpos = 0, outpos = 0;
+	err = lzma_stream_buffer_decode(&memlimit, 0, NULL, input, &inpos, input_size,
+		output, &outpos, *output_size);
+	if (err != LZMA_OK)
+		return (SQFS_ERR);
+	*output_size = outpos;
+	return (SQFS_OK);
+}
+
+const struct sqsh_decompressor sqsh_lzma_decompressor = {
+	.decompressor	=	lzma_decompressor,
+	.id				=	LZMA_COMPRESSION,
+	.name			=	"lzma",
+	.supported		=	1
+};
+
+#endif	/* SQUASHFS_LZMA */
 
 /* lzo decompressor support */
-#ifndef	LZO
+#ifndef	SQUASHFS_LZO
 
 static const struct sqsh_decompressor sqsh_lzo_decompressor = {
 	.decompressor	=	NULL,
@@ -113,10 +141,36 @@ static const struct sqsh_decompressor sqsh_lzo_decompressor = {
 	.supported		=	0
 };
 
-#endif /* LZO */
+#else	/* !SQUASHFS_LZO */
+
+#include <lzo/lzo1x.h>
+
+static sqsh_err
+lzo_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	lzo_uint lzout;
+	int err;
+
+	lzout = *output_size;
+	err = lzo1x_decompress_safe(input, input_size, output, &lzout, NULL);
+	if (err != LZO_E_OK)
+		return (SQFS_ERR);
+	*output_size = lzout;
+	return (SQFS_OK);
+}
+
+const struct sqsh_decompressor sqsh_lzo_decompressor = {
+	.decompressor	=	lzo_decompressor,
+	.id				=	LZO_COMPRESSION,
+	.name			=	"lzo",
+	.supported		=	1
+};
+
+#endif	/* SQUASHFS_LZO */
+
 
 /* lz4 decompressor supprt */
-#ifndef	LZ4
+#ifndef	SQUASHFS_LZ4
 
 static const struct sqsh_decompressor sqsh_lz4_decompressor = {
 	.decompressor	=	NULL,
@@ -125,10 +179,33 @@ static const struct sqsh_decompressor sqsh_lz4_decompressor = {
 	.supported		=	0
 };
 
-#endif /* LZ4 */
+#else	/* !SQUASHFS_LZ4 */
+
+#include <lz4.h>
+
+static sqsh_err
+lz4_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
+{
+	int lz4out;
+
+	lz4out = LZ4_decompress_safe (input, output, input_size, *output_size);
+	if (lz4out < 0)
+		return (SQFS_ERR);
+	*output_size = lz4out;
+	return (SQFS_OK);
+}
+
+const struct sqsh_decompressor sqsh_lz4_decompressor = {
+	.decompressor	=	lz4_decompressor,
+	.id				=	LZ4_COMPRESSION,
+	.name			=	"lz4",
+	.supported		=	1
+};
+
+#endif	/* SQUASHFS_LZ4 */
 
 /* zstd decompressor support */
-#ifndef	ZSTDIO
+#ifndef	SQUASHFS_ZSTD
 
 static const struct sqsh_decompressor sqsh_zstd_decompressor = {
 	.decompressor	=	NULL,
@@ -137,9 +214,9 @@ static const struct sqsh_decompressor sqsh_zstd_decompressor = {
 	.supported		=	0
 };
 
-#else	/* ZSTDIO */
+#else	/* !SQUASHFS_ZSTD */
 
-#include <contrib/zstd/lib/zstd.h>
+#include <zstd.h>
 
 static sqsh_err
 zstd_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
@@ -160,7 +237,7 @@ const struct sqsh_decompressor sqsh_zstd_decompressor = {
 	.supported		=	1
 };
 
-#endif	/* ZSTDIO */
+#endif	/* SQUASHFS_ZSTD */
 
 /* Unknown compression type */
 static const struct sqsh_decompressor sqsh_unknown_decompressor = {

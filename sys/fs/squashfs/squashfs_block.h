@@ -41,6 +41,13 @@ struct sqsh_block_run {
 	size_t	offset;
 };
 
+struct sqsh_dir {
+	struct sqsh_block_run	cur;
+	off_t					offset;
+	off_t					total;
+	struct sqsh_dir_header	header;
+};
+
 /* Helper functions to check if metadata/data block is compressed and its size */
 void		sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size);
 void		sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size);

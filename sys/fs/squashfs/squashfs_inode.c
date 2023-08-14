@@ -54,6 +54,7 @@
 #include <squashfs_inode.h>
 #include <squashfs_decompressor.h>
 #include <squashfs_block.h>
+#include <squashfs_dir.h>
 
 /* Swapendian functions for all types of inodes */
 void		swapendian_base_inode(struct sqsh_base_inode *temp);
@@ -187,7 +188,7 @@ sqsh_inode_type_from_id(struct sqsh_mount *ump, uint64_t inode_id)
 
 	sqsh_metadata_run_inode(&cur, inode_id, ump->sb.inode_table_start);
 
-	err = sqsh_metadata_get(ump, &cur, &inode->base, sizeof(inode->base));
+	err = sqsh_metadata_get(ump, &cur, &base, sizeof(base));
 	if (err != SQFS_OK)
 		return (VBAD);
 	swapendian_base_inode(&base);

@@ -31,13 +31,6 @@
 #ifndef SQUASHFS_DIR_H
 #define SQUASHFS_DIR_H
 
-struct sqsh_dir {
-	struct sqsh_block_run	cur;
-	off_t					offset;
-	off_t					total;
-	struct sqsh_dir_header	header;
-};
-
 struct sqsh_dir_entry {
 	uint64_t	inode_id;
 	uint32_t	inode_number;

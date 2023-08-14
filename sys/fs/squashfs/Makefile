@@ -9,7 +9,7 @@ SRCS=	\
 	squashfs_dir.c
 
 SRCS+=	vnode_if.h
-SRCS+=	opt_gzio.h
-SRCS+=	opt_zstdio.h
+CFLAGS+= -I/usr/include
+CFLAGS+= -I/usr/local/include
 
 .include <bsd.kmod.mk>

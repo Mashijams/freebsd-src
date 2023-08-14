@@ -58,9 +58,10 @@
 
 #define	SQUASHFS_IO_SIZE			65536
 
+
 #define	SQUASHFS_COOKIE_DOT			0
 #define	SQUASHFS_COOKIE_DOTDOT		1
-#define	SQUASHFS_COOKIE_EOF			OFF_MAX
+#define	SQUASHFS_COOKIE_EOF			~((off_t)1 << (sizeof(off_t) * 8 - 1))
 
 /* Filesystem flags */
 #define	SQUASHFS_NOI				0
