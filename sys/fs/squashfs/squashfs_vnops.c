@@ -188,7 +188,7 @@ squashfs_lookup(struct vop_cachedlookup_args *ap)
 
 	if (cnp->cn_flags & ISDOTDOT) {
 		/* Do not allow .. on the root node */
-		if (inode->xtra.parent_inode == ump->sb.inodes + 1)
+		if (inode->xtra.dir.parent_inode == ump->sb.inodes + 1)
 			return (ENOENT);
 
 		/* Get inode number of parent inode */
@@ -235,7 +235,154 @@ static int
 squashfs_readdir(struct vop_readdir_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_mount *ump;
+	struct dirent cde = { };
+	struct sqsh_inode *inode;
+	struct vnode *vp;
+	struct uio *uio;
+	struct sqsh_dir_entry entry;
+	int *eofflag;
+	uint64_t **cookies;
+	int *ncookies;
+	off_t off;
+	u_int idx, ndirents;
+	int error;
+	sqsh_err err;
+
+	vp = ap->a_vp;
+	uio = ap->a_uio;
+	eofflag = ap->a_eofflag;
+	cookies = ap->a_cookies;
+	ncookies = ap->a_ncookies;
+
+	if (vp->v_type != VDIR)
+		return (ENOTDIR);
+
+	inode = vp->v_data;
+	ump = inode->ump;
+	off = uio->uio_offset;
+	ndirents = 0;
+
+	if (uio->uio_offset == SQUASHFS_COOKIE_EOF)
+		return (0);
+
+	if (uio->uio_offset == SQUASHFS_COOKIE_DOT) {
+		/* fake . entry */
+		cde.d_fileno = inode->ino_id;
+		cde.d_type = DT_DIR;
+		cde.d_namlen = 1;
+		cde.d_name[0] = '.';
+		cde.d_name[1] = '\0';
+		cde.d_reclen = GENERIC_DIRSIZ(&cde);
+		if (cde.d_reclen > uio->uio_resid)
+			goto full;
+		dirent_terminate(&cde);
+		error = uiomove(&cde, cde.d_reclen, uio);
+		if (error)
+			return (error);
+		/* next is .. */
+		uio->uio_offset = SQUASHFS_COOKIE_DOTDOT;
+		ndirents++;
+	}
+
+	if (uio->uio_offset == SQUASHFS_COOKIE_DOTDOT) {
+		/* fake .. entry */
+		MPASS(inode->xtra.dir.parent_inode == ump->sb.inodes + 1);
+		/* Get inode number of parent inode */
+		uint64_t i_ino;
+		err = sqsh_export_inode(ump, inode->xtra.parent_inode, &i_ino);
+		if (err != SQFS_OK)
+			return (EINVAL);
+		cde.d_fileno = i_ino;
+		cde.d_type = DT_DIR;
+		cde.d_namlen = 2;
+		cde.d_name[0] = '.';
+		cde.d_name[1] = '.';
+		cde.d_name[2] = '\0';
+		cde.d_reclen = GENERIC_DIRSIZ(&cde);
+		if (cde.d_reclen > uio->uio_resid)
+			goto full;
+		dirent_terminate(&cde);
+		error = uiomove(&cde, cde.d_reclen, uio);
+		if (error)
+			return (error);
+		/* next is first child */
+		err = sqsh_dir_getnext(ump, inode->xtra.dir.d, &entry);
+		if (err == SQFS_END_OF_DIRECTORY)
+			goto done;
+		if (err != SQFS_OK) {
+			error = EINVAL;
+			goto done;
+		}
+		uio->uio_offset = entry.inode_id;
+		ndirents++;
+	}
+
+	for (;;) {
+		cde.d_fileno = entry.inode_id;
+		enum vtype type;
+		type = sqsh_inode_type_from_id(ump, entry.inode_id);
+		switch (type) {
+		case VBLK:
+			cde.d_type = DT_BLK;
+			break;
+		case VCHR:
+			cde.d_type = DT_CHR;
+			break;
+		case VDIR:
+			cde.d_type = DT_DIR;
+			break;
+		case VFIFO:
+			cde.d_type = DT_FIFO;
+			break;
+		case VLNK:
+			cde.d_type = DT_LNK;
+			break;
+		case VREG:
+			cde.d_type = DT_REG;
+			break;
+		default:
+			panic("%s: inode_type %d\n", __func__, type);
+		}
+		cde.d_namlen = entry.name_size;
+		MPASS(entry.name_size < sizeof(cde.d_name));
+		(void)memcpy(cde.d_name, entry.name, entry.name_size);
+		cde.d_name[entry.name_size] = '\0';
+		cde.d_reclen = GENERIC_DIRSIZ(&cde);
+		if (cde.d_reclen > uio->uio_resid)
+			goto full;
+		dirent_terminate(&cde);
+		error = uiomove(&cde, cde.d_reclen, uio);
+		if (error != 0)
+			goto done;
+		ndirents++;
+		/* next sibling */
+		err = sqsh_dir_getnext(ump, inode->xtra.dir.d, &entry);
+		if (err == SQFS_END_OF_DIRECTORY)
+			goto done;
+		if (err != SQFS_OK) {
+			error = EINVAL;
+			goto done;
+		}
+		uio->uio_offset = entry.inode_id;
+	}
+
+full:
+	if (cde.d_reclen > uio->uio_resid)
+		error = (ndirents == 0) ? EINVAL : 0;
+done:
+	TRACE("%s: %u entries written\n", __func__, ndirents);
+
+	if (err == SQFS_END_OF_DIRECTORY)
+		uio->uio_offset = SQUASHFS_COOKIE_EOF;
+
+	if (eofflag != NULL) {
+		TRACE("%s: Setting EOF flag\n", __func__);
+		*eofflag = (error == 0 && err == SQFS_END_OF_DIRECTORY);
+	}
+
+	return (error);
 }
 
 static int

@@ -178,6 +178,22 @@ sqsh_inode_type(int inode_type)
 	return (VBAD);
 }
 
+enum vtype
+sqsh_inode_type_from_id(struct sqsh_mount *ump, uint64_t inode_id)
+{
+	struct sqsh_block_run cur;
+	struct sqsh_base_inode base;
+	sqsh_err err;
+
+	sqsh_metadata_run_inode(&cur, inode_id, ump->sb.inode_table_start);
+
+	err = sqsh_metadata_get(ump, &cur, &inode->base, sizeof(inode->base));
+	if (err != SQFS_OK)
+		return (VBAD);
+	swapendian_base_inode(&base);
+	return sqsh_inode_type(base.inode_type);
+}
+
 sqsh_err
 sqsh_verify_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 {
@@ -261,7 +277,9 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	swapendian_base_inode(&inode->base);
 	inode->type = sqsh_inode_type(inode->base.inode_type);
 
+	inode->vnode = NULL;
 	inode->ump = ump;
+	inode->ino_id = id;
 
 	switch (inode->base.inode_type) {
 		case SQUASHFS_REG_TYPE: {
@@ -394,6 +412,8 @@ sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->size						=	temp.file_size;
 	inode->xtra.dir.idx_count		=	0;
 	inode->xtra.dir.parent_inode	=	temp.parent_inode;
+
+	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
 
 	return (SQFS_OK);
 }

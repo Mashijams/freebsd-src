@@ -60,9 +60,11 @@ struct sqsh_inode {
 			uint16_t		offset;
 			uint16_t		idx_count;
 			uint32_t		parent_inode;
+			struct sqsh_dir	d;
 		} dir;
 	} xtra;
 
+	uint64_t				ino_id;
 	struct vnode			*vnode;
 	struct sqsh_mount		*ump;
 };
@@ -81,6 +83,7 @@ sqsh_err	sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				uint64_t id);
 
 enum vtype	sqsh_inode_type(int inode_type);
+enum vtype	sqsh_inode_type_from_id(struct sqsh_mount *ump, uint64_t inode_id);
 
 sqsh_err	sqsh_get_inode_id(struct sqsh_mount *ump, uint16_t idx, uint32_t *id);
 
