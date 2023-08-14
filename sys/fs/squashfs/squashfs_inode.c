@@ -261,6 +261,8 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	swapendian_base_inode(&inode->base);
 	inode->type = sqsh_inode_type(inode->base.inode_type);
 
+	inode->ump = ump;
+
 	switch (inode->base.inode_type) {
 		case SQUASHFS_REG_TYPE: {
 			err = sqsh_init_reg_inode(ump, inode);

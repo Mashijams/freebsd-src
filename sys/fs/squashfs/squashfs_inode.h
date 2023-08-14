@@ -64,6 +64,7 @@ struct sqsh_inode {
 	} xtra;
 
 	struct vnode			*vnode;
+	struct sqsh_mount		*ump;
 };
 
 /* helper functions to query on table */

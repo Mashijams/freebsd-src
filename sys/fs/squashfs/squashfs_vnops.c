@@ -52,6 +52,7 @@
 #include <squashfs.h>
 #include <squashfs_mount.h>
 #include <squashfs_inode.h>
+#include <squashfs_dir.h>
 
 static int
 squashfs_open(struct vop_open_args *ap)
@@ -166,7 +167,68 @@ static int
 squashfs_lookup(struct vop_cachedlookup_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct squashfs_mount *ump;
+	struct sqsh_inode *inode;
+	struct componentname *cnp;
+	struct vnode *dvp, **vpp;
+	sqsh_err err;
+
+	dvp = ap->a_dvp;
+	vpp = ap->a_vpp;
+	cnp = ap->a_cnp;
+
+	*vpp = NULLVP;
+	inode = dvp->v_data;
+	ump = inode->ump;
+
+	error = VOP_ACCESS(dvp, VEXEC, cnp->cn_cred, curthread);
+	if (error != 0)
+		return (error);
+
+	if (cnp->cn_flags & ISDOTDOT) {
+		/* Do not allow .. on the root node */
+		if (inode->xtra.parent_inode == ump->sb.inodes + 1)
+			return (ENOENT);
+
+		/* Get inode number of parent inode */
+		uint64_t i_ino;
+		err = sqsh_export_inode(ump, inode->xtra.parent_inode, &i_ino);
+		if (err != SQFS_OK)
+			return (EINVAL);
+
+		/* Allocate a new vnode on the matching entry */
+		error = vn_vget_ino(dvp, i_ino, cnp->cn_lkflags, vpp);
+		if (error != 0)
+			return (error);
+	} else if (cnp->cn_namelen == 1 && cnp->cn_nameptr[0] == '.') {
+		VREF(dvp);
+		*vpp = dvp;
+	} else {
+		struct sqsh_dir_entry entry;
+		bool found;
+
+		found = false;
+
+		/* Lookup for entry in directory, if found populate entry */
+		err = sqsh_dir_lookup(ump, inode, cnp->cn_nameptr,
+				cnp->cn_namelen, &entry, &found);
+		if (err != SQFS_OK)
+			return (EINVAL);
+
+		if (found == false)
+			return (ENOENT);
+
+		error = VFS_VGET(ump->um_mountp, entry->inode_id, cnp->cn_lkflags, vpp);
+		if (error != 0)
+			return (error);
+	}
+
+	/* Store the result the the cache if MAKEENTRY is specified in flags */
+	if ((cnp->cn_flags & MAKEENTRY) != 0 && cnp->cn_nameiop != CREATE)
+		cache_enter(dvp, *vpp, cnp);
+
+	return (error);
 }
 
 static int
