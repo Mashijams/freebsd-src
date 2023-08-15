@@ -31,6 +31,21 @@
 #ifndef SQUASHFS_FILE_H
 #define SQUASHFS_FILE_H
 
+struct sqsh_blocklist {
+	sqsh_mount		*ump;
+	size_t			remain;
+	sqsh_block_run	cur;
+	bool			started;
+	uint64_t		pos;
+	uint64_t		block;
+	uint32_t		header;
+	uint32_t		input_size;
+};
+
+struct sqsh_blockidx_entry {
+	uint64_t	data_block;
+	uint32_t	md_block;
+};
 
 
 #endif
