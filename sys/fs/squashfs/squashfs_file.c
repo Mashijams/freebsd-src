@@ -66,3 +66,17 @@ sqsh_blocklist_count(struct sqsh_mount *ump, struct sqsh_inode *inode)
 		return (size_t)(size / block);
 	}
 }
+
+void
+sqsh_blocklist_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	struct sqsh_blocklist *bl)
+{
+	bl->ump			=	ump;
+	bl->remain		=	sqsh_blocklist_count(ump, inode);
+	bl->cur			=	inode->next;
+	bl->started		=	false;
+	bl->pos			=	0;
+	bl->block		=	inode->xtra.reg.start_block;
+	bl->input_size	=	0;
+}
+
