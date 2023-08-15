@@ -47,5 +47,10 @@ struct sqsh_blockidx_entry {
 	uint32_t	md_block;
 };
 
+/* sqsh_blocklist helper functions */
+size_t		sqsh_blocklist_count(struct sqsh_mount *ump, struct sqsh_inode *inode);
+void		sqsh_blocklist_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				struct sqsh_blocklist *bl);
+sqfs_err	sqsh_blocklist_next(struct sqsh_blocklist *bl);
 
 #endif
