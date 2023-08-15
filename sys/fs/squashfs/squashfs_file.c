@@ -80,3 +80,29 @@ sqsh_blocklist_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	bl->input_size	=	0;
 }
 
+sqfs_err
+sqsh_blocklist_next(struct sqsh_blocklist *bl)
+{
+	sqfs_err err;
+	bool compressed;
+
+	err = SQFS_OK;
+
+	if (bl->remain == 0)
+		return SQFS_ERR;
+	--(bl->remain);
+
+	err = sqsh_metadata_get(bl->ump, &bl->cur, &bl->header, sizeof(bl->header));
+	if (err != SQFS_OK)
+		return err;
+	bl->header = le32toh(bl->header);
+	bl->block += bl->input_size;
+	sqsh_data_header(bl->header, &compressed, &bl->input_size);
+
+	if (bl->started)
+		bl->pos += bl->fs->sb.block_size;
+	bl->started = true;
+
+	return SQFS_OK;
+}
+
