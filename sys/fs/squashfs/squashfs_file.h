@@ -51,6 +51,13 @@ struct sqsh_blockidx_entry {
 size_t		sqsh_blocklist_count(struct sqsh_mount *ump, struct sqsh_inode *inode);
 void		sqsh_blocklist_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				struct sqsh_blocklist *bl);
-sqfs_err	sqsh_blocklist_next(struct sqsh_blocklist *bl);
+sqsh_err	sqsh_blocklist_next(struct sqsh_blocklist *bl);
+
+/* Block index helper functions for skipping to the middle of large files */
+static bool	sqsh_blockidx_indexable(struct sqsh_mount *ump, struct sqsh_inode *inode);
+sqsh_err	sqsh_blockidx_add(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				struct sqsh_blockidx_entry *out);
+sqsh_err	sqsh_blockidx_blocklist(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				struct sqsh_blocklist *bl, off_t start);
 
 #endif

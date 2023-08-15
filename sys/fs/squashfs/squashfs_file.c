@@ -106,3 +106,10 @@ sqsh_blocklist_next(struct sqsh_blocklist *bl)
 	return SQFS_OK;
 }
 
+static bool
+sqsh_blockidx_indexable(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	size_t blocks = sqsh_blocklist_count(ump, inode);
+	size_t md_size = blocks * sizeof(sqsh_blocklist_entry);
+	return md_size >= SQUASHFS_METADATA_SIZE;
+}
