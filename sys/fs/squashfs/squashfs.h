@@ -63,6 +63,10 @@
 #define	SQUASHFS_COOKIE_DOTDOT		1
 #define	SQUASHFS_COOKIE_EOF			~((off_t)1 << (sizeof(off_t) * 8 - 1))
 
+#define	SQUASHFS_TYPE_MIN_VALID		1
+#define	SQUASHFS_TYPE_MAX_VALID		14
+#define	SQUASHFS_INODE_MIN_COUNT	1
+
 /* Filesystem flags */
 #define	SQUASHFS_NOI				0
 #define	SQUASHFS_NOD				1

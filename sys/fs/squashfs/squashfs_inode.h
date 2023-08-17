@@ -31,8 +31,6 @@
 #ifndef	SQUASHFS_INODE_H
 #define	SQUASHFS_INODE_H
 
-#include <squashfs_block.h>
-
 #define	SQUASHFS_INODE_OFFSET(A)	((unsigned int) ((A) & 0xffff))
 
 struct sqsh_inode {

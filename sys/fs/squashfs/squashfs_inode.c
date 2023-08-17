@@ -154,27 +154,27 @@ enum vtype
 sqsh_inode_type(int inode_type)
 {
 	switch (inode_type) {
-		case SQUASHFS_DIR_TYPE:
-		case SQUASHFS_LDIR_TYPE:
-			return (VDIR);
-		case SQUASHFS_REG_TYPE:
-		case SQUASHFS_LREG_TYPE:
-			return (VREG);
-		case SQUASHFS_SYMLINK_TYPE:
-		case SQUASHFS_LSYMLINK_TYPE:
-			return (VLNK);
-		case SQUASHFS_BLKDEV_TYPE:
-		case SQUASHFS_LBLKDEV_TYPE:
-			return (VBLK);
-		case SQUASHFS_CHRDEV_TYPE:
-		case SQUASHFS_LCHRDEV_TYPE:
-			return (VCHR);
-		case SQUASHFS_FIFO_TYPE:
-		case SQUASHFS_LFIFO_TYPE:
-			return (VFIFO);
-		case SQUASHFS_SOCKET_TYPE:
-		case SQUASHFS_LSOCKET_TYPE:
-			return (VSOCK);
+	case SQUASHFS_DIR_TYPE:
+	case SQUASHFS_LDIR_TYPE:
+		return (VDIR);
+	case SQUASHFS_REG_TYPE:
+	case SQUASHFS_LREG_TYPE:
+		return (VREG);
+	case SQUASHFS_SYMLINK_TYPE:
+	case SQUASHFS_LSYMLINK_TYPE:
+		return (VLNK);
+	case SQUASHFS_BLKDEV_TYPE:
+	case SQUASHFS_LBLKDEV_TYPE:
+		return (VBLK);
+	case SQUASHFS_CHRDEV_TYPE:
+	case SQUASHFS_LCHRDEV_TYPE:
+		return (VCHR);
+	case SQUASHFS_FIFO_TYPE:
+	case SQUASHFS_LFIFO_TYPE:
+		return (VFIFO);
+	case SQUASHFS_SOCKET_TYPE:
+	case SQUASHFS_LSOCKET_TYPE:
+		return (VSOCK);
 	}
 	return (VBAD);
 }
@@ -200,20 +200,27 @@ sqsh_verify_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 {
 
 	/* check for inode type */
-	if (inode->base.inode_type < 1 || inode->base.inode_type > 14)
-		return (SQFS_ERR);
-
-	/* check for inode_number */
-	if (inode->base.inode_number < 1 || inode->base.inode_number > ump->sb.inodes)
+	if (inode->base.inode_type < SQUASHFS_TYPE_MIN_VALID
+		|| inode->base.inode_type > SQUASHFS_TYPE_MAX_VALID)
 		return (SQFS_ERR);
 
 	/*
-	 * if inode type is directory then check for parent inode.
+	 * check for inode_number.
+	 * The inode numbers are from 1 to the total number of inodes.
+	 * Note that 0 is always invalid because we will
+	 * always have at least a root inode.
+	 */
+	if (inode->base.inode_number < SQUASHFS_INODE_MIN_COUNT
+		|| inode->base.inode_number > ump->sb.inodes)
+		return (SQFS_ERR);
+
+	/*
+	 * If inode type is directory then check for parent inode.
 	 * Note that we add +1 because for root inode parent_inode
 	 * is total inodes + 1
 	 */
-	if (inode->base.inode_type == 1) {
-		if (inode->xtra.dir.parent_inode < 1
+	if (inode->base.inode_type == SQUASHFS_DIR_TYPE) {
+		if (inode->xtra.dir.parent_inode < SQUASHFS_INODE_MIN_COUNT
 			|| inode->xtra.dir.parent_inode > ump->sb.inodes + 1)
 			return (SQFS_ERR);
 	}
@@ -265,6 +272,8 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	struct sqsh_block_run cur;
 	sqsh_err err;
 
+	assert(inode != NULL);
+
 	/* initialise all inode fields to 0 */
 	memset(inode, 0, sizeof(*inode));
 	inode->xattr = SQUASHFS_INVALID_XATTR;
@@ -278,78 +287,26 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	swapendian_base_inode(&inode->base);
 	inode->type = sqsh_inode_type(inode->base.inode_type);
 
-	inode->vnode = NULL;
-	inode->ump = ump;
-	inode->ino_id = id;
-
 	switch (inode->base.inode_type) {
-		case SQUASHFS_REG_TYPE: {
-			err = sqsh_init_reg_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_LREG_TYPE: {
-			err = sqsh_init_lreg_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_DIR_TYPE: {
-			err = sqsh_init_dir_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_LDIR_TYPE: {
-			err = sqsh_init_ldir_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_SYMLINK_TYPE:
-		case SQUASHFS_LSYMLINK_TYPE: {
-			err = sqsh_init_symlink_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_BLKDEV_TYPE:
-		case SQUASHFS_CHRDEV_TYPE: {
-			err = sqsh_init_dev_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_LBLKDEV_TYPE:
-		case SQUASHFS_LCHRDEV_TYPE: {
-			err = sqsh_init_ldev_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_SOCKET_TYPE:
-		case SQUASHFS_FIFO_TYPE: {
-			err = sqsh_init_ipc_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		case SQUASHFS_LSOCKET_TYPE:
-		case SQUASHFS_LFIFO_TYPE: {
-			err = sqsh_init_lipc_inode(ump, inode);
-			if (err != SQFS_OK)
-				return (err);
-			break;
-		}
-		default: return (SQFS_ERR);
+	case SQUASHFS_REG_TYPE: {
+		err = sqsh_init_reg_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	case SQUASHFS_LREG_TYPE: {
+		err = sqsh_init_lreg_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	default:
+		return (SQFS_ERR);
 	}
 
 	err = sqsh_verify_inode(ump, inode);
-	if (err != SQFS_OK)
-		return (err);
 
-	return (SQFS_OK);
+	return (err);
 }
 
 sqsh_err
@@ -391,161 +348,6 @@ sqsh_init_lreg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->xtra.reg.frag_idx	=	temp.fragment;
 	inode->xtra.reg.frag_off	=	temp.offset;
 	inode->xattr				=	temp.xattr;
-
-	return (SQFS_OK);
-}
-
-sqsh_err
-sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
-{
-	struct sqsh_dir_inode temp;
-	sqsh_err err;
-
-	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
-	if (err != SQFS_OK)
-		return (err);
-	swapendian_dir_inode(&temp);
-
-	/* initialise inode dir fields */
-	inode->nlink					=	temp.nlink;
-	inode->xtra.dir.start_block 	=	temp.start_block;
-	inode->xtra.dir.offset			=	temp.offset;
-	inode->size						=	temp.file_size;
-	inode->xtra.dir.idx_count		=	0;
-	inode->xtra.dir.parent_inode	=	temp.parent_inode;
-
-	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
-
-	return (SQFS_OK);
-}
-
-sqsh_err
-sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
-{
-	struct sqsh_ldir_inode temp;
-	sqsh_err err;
-
-	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
-	if (err != SQFS_OK)
-		return (err);
-	swapendian_ldir_inode(&temp);
-
-	/* initialise inode dir fields */
-	inode->nlink					=	temp.nlink;
-	inode->xtra.dir.start_block 	=	temp.start_block;
-	inode->xtra.dir.offset			=	temp.offset;
-	inode->size						=	temp.file_size;
-	inode->xtra.dir.idx_count		=	temp.i_count;
-	inode->xtra.dir.parent_inode	=	temp.parent_inode;
-	inode->xattr					=	temp.xattr;
-
-	return (SQFS_OK);
-}
-
-sqsh_err
-sqsh_init_symlink_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
-{
-	struct sqsh_symlink_inode temp;
-	sqsh_err err;
-
-	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
-	if (err != SQFS_OK)
-		return (err);
-
-	/* initialise inode dir fields */
-	inode->nlink				=	le32toh(temp.nlink);
-	inode->size					=	le32toh(temp.symlink_size);
-
-	return (SQFS_OK);
-}
-
-sqsh_err
-sqsh_init_dev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
-{
-	struct sqsh_dev_inode temp;
-	sqsh_err err;
-
-	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
-	if (err != SQFS_OK)
-		return (err);
-
-	/* set size of inode data to 0 */
-	inode->size				=	0;
-
-	/* initialise inode nlink field */
-	inode->nlink			=	le32toh(temp.nlink);
-
-	/* swapendian() rdev */
-	temp.rdev				=	le32toh(temp.rdev);
-
-	/* decode rdev */
-	inode->xtra.dev.major	=	(temp.rdev >> 8) & 0xfff;
-	inode->xtra.dev.minor	=	(temp.rdev & 0xff) | ((temp.rdev >> 12) & 0xfff00);
-
-	return (SQFS_OK);
-}
-
-sqsh_err
-sqsh_init_ldev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
-{
-	struct sqsh_ldev_inode temp;
-	sqsh_err err;
-
-	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
-	if (err != SQFS_OK)
-		return (err);
-
-	/* set size of inode data to 0 */
-	inode->size				=	0;
-
-	/* initialise inode fields */
-	inode->nlink			=	le32toh(temp.nlink);
-	inode->xattr			=	le32toh(temp.xattr);
-
-	/* swapendian() rdev */
-	temp.rdev				=	le32toh(temp.rdev);
-
-	/* decode rdev */
-	inode->xtra.dev.major	=	(temp.rdev >> 8) & 0xfff;
-	inode->xtra.dev.minor	=	(temp.rdev & 0xff) | ((temp.rdev >> 12) & 0xfff00);
-
-	return (SQFS_OK);
-}
-
-sqsh_err
-sqsh_init_ipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
-	struct sqsh_ipc_inode temp;
-	sqsh_err err;
-
-	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
-	if (err != SQFS_OK)
-		return (err);
-
-	/* set size of inode data to 0 */
-	inode->size				=	0;
-
-	/* initialise inode nlink field */
-	inode->nlink			=	le32toh(temp.nlink);
-
-	return (SQFS_OK);
-}
-
-sqsh_err
-sqsh_init_lipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
-{
-	struct sqsh_lipc_inode temp;
-	sqsh_err err;
-
-	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
-	if (err != SQFS_OK)
-		return (err);
-
-	/* set size of inode data to 0 */
-	inode->size				=	0;
-
-	/* initialise inode nlink field */
-	inode->nlink			=	le32toh(temp.nlink);
-	inode->xattr			=	le32toh(temp.xattr);
 
 	return (SQFS_OK);
 }
@@ -594,41 +396,5 @@ swapendian_lreg_inode(struct sqsh_lreg_inode *temp)
 	temp->nlink			=	le32toh(temp->nlink);
 	temp->fragment		=	le32toh(temp->fragment);
 	temp->offset		=	le32toh(temp->offset);
-	temp->xattr			=	le32toh(temp->xattr);
-}
-
-void
-swapendian_dir_inode(struct sqsh_dir_inode *temp)
-{
-
-	temp->inode_type	=	le16toh(temp->inode_type);
-	temp->mode			=	le16toh(temp->mode);
-	temp->uid			=	le16toh(temp->uid);
-	temp->guid			=	le16toh(temp->guid);
-	temp->mtime			=	le32toh(temp->mtime);
-	temp->inode_number	=	le32toh(temp->inode_number);
-	temp->start_block	=	le32toh(temp->start_block);
-	temp->nlink			=	le32toh(temp->nlink);
-	temp->file_size		=	le16toh(temp->file_size);
-	temp->offset		=	le16toh(temp->offset);
-	temp->parent_inode	=	le32toh(temp->parent_inode);
-}
-
-void
-swapendian_ldir_inode(struct sqsh_ldir_inode *temp)
-{
-
-	temp->inode_type	=	le16toh(temp->inode_type);
-	temp->mode			=	le16toh(temp->mode);
-	temp->uid			=	le16toh(temp->uid);
-	temp->guid			=	le16toh(temp->guid);
-	temp->mtime			=	le32toh(temp->mtime);
-	temp->inode_number	=	le32toh(temp->inode_number);
-	temp->nlink			=	le32toh(temp->nlink);
-	temp->file_size		=	le32toh(temp->file_size);
-	temp->start_block	=	le32toh(temp->start_block);
-	temp->parent_inode	=	le32toh(temp->parent_inode);
-	temp->i_count		=	le16toh(temp->i_count);
-	temp->offset		=	le16toh(temp->offset);
 	temp->xattr			=	le32toh(temp->xattr);
 }
