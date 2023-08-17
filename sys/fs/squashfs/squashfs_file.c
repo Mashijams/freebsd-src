@@ -145,7 +145,7 @@ sqsh_blockidx_add(struct sqsh_mount *ump, struct sqsh_inode *inode,
 
 	sqsh_blocklist_init(ump, inode, &bl);
 	while (bl.remain && i < count) {
-		sqfs_err err;
+		sqsh_err err;
 		/* skip the first metadata block since its stored in inode */
 		if (bl.cur.offset < sizeof(struct sqsh_blocklist_entry) && !first) {
 			blockidx[i].data_block = bl.block + bl.input_size;
@@ -161,5 +161,50 @@ sqsh_blockidx_add(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	}
 
 	*out = blockidx;
+	return SQFS_OK;
+}
+
+sqsh_err
+sqsh_blockidx_blocklist(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	struct sqsh_blocklist *bl, off_t start)
+{
+	size_t block, metablock, skipped;
+	struct sqfs_blockidx_entry *blockidx, **bp;
+	sqsh_err err
+
+	struct sqsh_blocklist_init(fs, inode, bl);
+	block = (size_t)(start / fs->sb.block_size);
+	/* fragment */
+	if (block > bl->remain) {
+		bl->remain = 0;
+		return SQFS_OK;
+	}
+
+	/* Total blocks we need to skip */
+	metablock = (bl->cur.offset + block * sizeof(struct sqsh_blocklist_entry))
+		/ SQUASHFS_METADATA_SIZE;
+	if (metablock == 0)
+		return SQFS_OK;
+	if (!sqsh_blockidx_indexable(ump, inode))
+		return SQFS_OK;
+
+	err = sqsh_blockidx_add(ump, inode, &blockidx, bp);
+	if (err != SQFS_OK) {
+		return err;
+	}
+
+	skipped = (metablock * SQUASHFS_METADATA_SIZE / sizeof(struct sqsh_blocklist_entry))
+		- (bl->cur.offset / sizeof(struct sqsh_blocklist_entry));
+
+	blockidx += metablock - 1;
+	bl->cur.block = blockidx->md_block + fs->sb.inode_table_start;
+	bl->cur.offset %= sizeof(struct sqsh_blocklist_entry);
+	bl->remain -= skipped;
+	bl->pos = (uint64_t)skipped * fs->sb.block_size;
+	bl->block = blockidx->data_block;
+
+	/* free blockidx */
+	free(blockidx, M_SQSHBLKIDX);
+
 	return SQFS_OK;
 }
