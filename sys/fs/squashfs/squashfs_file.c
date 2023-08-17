@@ -55,6 +55,8 @@
 #include <squashfs_block.h>
 #include <squashfs_file.h>
 
+static	MALLOC_DEFINE(M_SQSHBLKIDX, "Sqsh Blk idx", "Squashfs block index");
+
 size_t
 sqsh_blocklist_count(struct sqsh_mount *ump, struct sqsh_inode *inode)
 {
@@ -112,4 +114,52 @@ sqsh_blockidx_indexable(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	size_t blocks = sqsh_blocklist_count(ump, inode);
 	size_t md_size = blocks * sizeof(sqsh_blocklist_entry);
 	return md_size >= SQUASHFS_METADATA_SIZE;
+}
+
+sqsh_err
+sqsh_blockidx_add(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	struct sqsh_blockidx_entry **out)
+{
+	size_t blocks;
+	size_t md_size;
+	size_t count;
+
+	struct sqsh_blockidx_entry *blockidx;
+	struct sqsh_blocklist bl;
+
+	size_t i;
+	bool first;
+
+	i = 0;
+	first = true;
+	*out = NULL;
+
+	blocks = sqsh_blocklist_count(ump, inode);
+	md_size = blocks * sizeof(struct sqsh_blocklist_entry);
+	count = (inode->next.offset + md_size - 1)
+		/ SQUASHFS_METADATA_SIZE;
+	blockidx = malloc(count * sizeof(struct sqsh_blockidx_entry), M_SQSHBLKIDX,
+	    M_WAITOK | M_ZERO);
+	if (blockidx == NULL)
+		return SQFS_ERR;
+
+	sqsh_blocklist_init(ump, inode, &bl);
+	while (bl.remain && i < count) {
+		sqfs_err err;
+		/* skip the first metadata block since its stored in inode */
+		if (bl.cur.offset < sizeof(struct sqsh_blocklist_entry) && !first) {
+			blockidx[i].data_block = bl.block + bl.input_size;
+			blockidx[i++].md_block = (uint32_t)(bl.cur.block - fs->sb.inode_table_start);
+		}
+		first = false;
+
+		err = sqsh_blocklist_next(&bl);
+		if (err != SQFS_OK) {
+			free(blockidx, M_SQSHBLKIDX);
+			return SQFS_ERR;
+		}
+	}
+
+	*out = blockidx;
+	return SQFS_OK;
 }
