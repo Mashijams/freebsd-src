@@ -225,6 +225,30 @@ sqsh_frag_entry(struct sqsh_mount *ump, struct sqsh_fragment_entry *frag,
 	return err;
 }
 
+sqsh_err
+sqsh_frag_block(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	size_t *offset, size_t *size, struct sqsh_block **block)
+{
+	struct squashfs_fragment_entry frag;
+	sqfs_err err;
+
+	if (inode->type != VREG)
+		return SQFS_ERR;
+
+	err = sqsh_frag_entry(ump, &frag, inode->xtra.reg.frag_idx);
+	if (err != SQFS_OK)
+		return err;
+
+	err = sqsh_data_read(ump, frag.start_block, frag.size, block);
+	if (err)
+		return SQFS_ERR;
+
+	*offset = inode->xtra.reg.frag_off;
+	*size = inode->xtra.reg.file_size % fs->sb.block_size;
+
+	return (err);
+}
+
 void
 swapendian_fragment_entry(struct sqsh_fragment_entry *temp)
 {
