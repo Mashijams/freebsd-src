@@ -57,6 +57,8 @@
 
 static	MALLOC_DEFINE(M_SQSHBLKIDX, "Sqsh Blk idx", "Squashfs block index");
 
+void	swapendian_fragment_entry(struct sqsh_fragment_entry *temp);
+
 size_t
 sqsh_blocklist_count(struct sqsh_mount *ump, struct sqsh_inode *inode)
 {
@@ -207,4 +209,26 @@ sqsh_blockidx_blocklist(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	free(blockidx, M_SQSHBLKIDX);
 
 	return SQFS_OK;
+}
+
+sqsh_err
+sqsh_frag_entry(struct sqsh_mount *ump, struct sqsh_fragment_entry *frag,
+	uint32_t idx)
+{
+	sqfs_err err;
+
+	if (idx == SQUASHFS_INVALID_FRAG)
+		return SQFS_ERR;
+
+	err = sqsh_table_get(&ump->frag_table, ump, idx, frag);
+	swapendian_fragment_entry(frag);
+	return err;
+}
+
+void
+swapendian_fragment_entry(struct sqsh_fragment_entry *temp)
+{
+	temp->start_block	=	le64toh(temp->start_block);
+	temp->size			=	le32toh(temp->size);
+	temp->unused		=	le32toh(temp->unused);
 }
