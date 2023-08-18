@@ -63,8 +63,10 @@ sqsh_err	sqsh_blockidx_blocklist(struct sqsh_mount *ump, struct sqsh_inode *inod
 /* fragments helper functions */
 sqsh_err	sqsh_frag_entry(struct sqsh_mount *ump, struct sqsh_fragment_entry *frag,
 				uint32_t idx);
-
 sqsh_err	sqsh_frag_block(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				size_t *offset, size_t *size, struct sqsh_block **block);
+
+sqsh_err	sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				off_t start, off_t *size, void *buf);
 
 #endif

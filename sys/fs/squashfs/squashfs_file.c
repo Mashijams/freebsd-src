@@ -240,13 +240,97 @@ sqsh_frag_block(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		return err;
 
 	err = sqsh_data_read(ump, frag.start_block, frag.size, block);
-	if (err)
+	if (err != SQFS_OK)
 		return SQFS_ERR;
 
 	*offset = inode->xtra.reg.frag_off;
 	*size = inode->xtra.reg.file_size % fs->sb.block_size;
 
 	return (err);
+}
+
+sqsh_err
+sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	off_t start, off_t *size, void *buf)
+{
+	sqfs_err err;
+	off_t file_size;
+	size_t block_size;
+	struct sqsh_blocklist bl;
+	size_t read_off;
+	char *buf_orig;
+
+	file_size = inode->xtra.reg.file_size;
+	block_size = ump->sb.block_size;
+
+	if (*size < 0 || start > file_size)
+		return SQFS_ERR;
+	if (start == file_size) {
+		*size = 0;
+		return SQFS_OK;
+	}
+
+	err = sqsh_blockidx_blocklist(ump, inode, &bl, start);
+	if (err != SQFS_OK)
+		return err;
+
+	read_off = start % block_size;
+	buf_orig = buf;
+	while (*size > 0) {
+		struct sqsh_block *block;
+		size_t data_off, data_size;
+		size_t take;
+		bool fragment;
+
+		block = NULL;
+		fragment = (bl.remain == 0);
+
+		if (fragment) {
+			if (inode->xtra.reg.frag_idx == SQUASHFS_INVALID_FRAG)
+				break;
+			err = sqsh_frag_block(ump, inode, &data_off, &data_size, &block);
+			if (err != SQFS_OK)
+				return err;
+		} else {
+			err = sqsh_blocklist_next(&bl);
+			if (err != SQFS_OK)
+				return err;
+			if (bl.pos + block_size <= start)
+				continue;
+
+			data_off = 0;
+			if (bl.input_size == 0) {
+				data_size = (size_t)(file_size - bl.pos);
+				if (data_size > block_size)
+					data_size = block_size;
+			} else {
+				err = sqsh_data_read(ump, bl.block, bl.header, &block);
+				if (err != SQFS_OK)
+					return err;
+				data_size = block->size;
+			}
+		}
+
+		take = data_size - read_off;
+		if (take > *size)
+			take = (size_t)(*size);
+		if (block != NULL) {
+			memcpy(buf, (char*)block->data + data_off + read_off, take);
+			/* free the allocated block since we have no cache now */
+			sqsh_block_dispose(block);
+		} else {
+			memset(buf, 0, take);
+		}
+		read_off = 0;
+		*size -= take;
+		buf = (char*)buf + take;
+
+		if (fragment)
+			break;
+	}
+
+	*size = (char*)buf - buf_orig;
+	return *size ? SQFS_OK : SQFS_ERR;
 }
 
 void
