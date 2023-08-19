@@ -522,7 +522,25 @@ static int
 squashfs_vptofh(struct vop_vptofh_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct vnode *vp;
+	struct sqsh_fid *tfp;
+	struct sqsh_inode *inode;
+	sqsh_err err;
+
+	tfp = (struct sqsh_fid *)ap->a_fhp;
+	vp = ap->a_vp;
+	inode = vp->v_data;
+
+	uint64_t i_ino;
+	err = sqsh_export_inode(ump, inode->base.inode_number, &i_ino);
+	if (err != SQFS_OK)
+		return (EINVAL);
+
+	tfp->len = sizeof(struct sqsh_fid);
+	tfp->ino = i_ino;
+
+	return (0);
 }
 
 
