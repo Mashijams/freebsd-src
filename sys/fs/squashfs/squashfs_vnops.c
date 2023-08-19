@@ -473,7 +473,49 @@ static int
 squashfs_strategy(struct vop_strategy_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_mount *ump;
+	struct vnode *vp;
+	struct sqsh_inode *inode;
+	struct buf *bp;
+	off_t off;
+	size_t len;
+	int error;
+	sqsh_err err;
+
+	error = 0;
+	vp = ap->a_vp;
+	bp = ap->a_bp;
+	MPASS(bp->b_iocmd == BIO_READ);
+	MPASS(bp->b_iooffset >= 0);
+	MPASS(bp->b_bcount > 0);
+	MPASS(bp->b_bufsize >= bp->b_bcount);
+
+	inode = vp->v_data;
+	ump = inode->ump;
+	off = bp->b_iooffset;
+	len = bp->b_bcount;
+	bp->b_resid = len;
+
+	if (off > inode->size) {
+		error = EIO;
+		goto out;
+	}
+	if (off + len > inode->size)
+		len = tnp->size - off;
+
+	err = sqsh_read_file(ump, inode, off, &bp->b_resid, bp->b_data);
+	if (err != SQFS_OK) {
+		error = EINVAL;
+		goto out;
+	}
+out:
+	if (error != 0) {
+		bp->b_ioflags |= BIO_ERROR;
+		bp->b_error = error;
+	}
+	bp->b_flags |= B_DONE;
+	return (0);
 }
 
 static int
