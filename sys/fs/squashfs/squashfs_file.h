@@ -32,14 +32,14 @@
 #define SQUASHFS_FILE_H
 
 struct sqsh_blocklist {
-	sqsh_mount		*ump;
-	size_t			remain;
-	sqsh_block_run	cur;
-	bool			started;
-	uint64_t		pos;
-	uint64_t		block;
-	uint32_t		header;
-	uint32_t		input_size;
+	struct sqsh_mount		*ump;
+	size_t					remain;
+	struct sqsh_block_run	cur;
+	bool					started;
+	uint64_t				pos;
+	uint64_t				block;
+	uint32_t				header;
+	uint32_t				input_size;
 };
 
 struct sqsh_blockidx_entry {

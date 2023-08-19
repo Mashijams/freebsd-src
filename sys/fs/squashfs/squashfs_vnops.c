@@ -166,8 +166,6 @@ squashfs_read(struct vop_read_args *ap)
 	struct sqsh_inode *inode;
 	struct uio *uiop;
 	struct vnode *vp;
-	size_t len;
-	off_t resid;
 	sqsh_err err;
 
 	uiop = ap->a_uio;
@@ -502,7 +500,7 @@ squashfs_strategy(struct vop_strategy_args *ap)
 		goto out;
 	}
 	if (off + len > inode->size)
-		len = tnp->size - off;
+		len = inode->size - off;
 
 	err = sqsh_read_file(ump, inode, off, &bp->b_resid, bp->b_data);
 	if (err != SQFS_OK) {
@@ -533,7 +531,7 @@ squashfs_vptofh(struct vop_vptofh_args *ap)
 	inode = vp->v_data;
 
 	uint64_t i_ino;
-	err = sqsh_export_inode(ump, inode->base.inode_number, &i_ino);
+	err = sqsh_export_inode(inode->ump, inode->base.inode_number, &i_ino);
 	if (err != SQFS_OK)
 		return (EINVAL);
 

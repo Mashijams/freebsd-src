@@ -62,8 +62,8 @@ void	swapendian_fragment_entry(struct sqsh_fragment_entry *temp);
 size_t
 sqsh_blocklist_count(struct sqsh_mount *ump, struct sqsh_inode *inode)
 {
-	uint64_t size = inode->xtra.reg.file_size;
-	size_t block = fs->sb.block_size;
+	uint64_t size = inode->size;
+	size_t block = ump->sb.block_size;
 	if (inode->xtra.reg.frag_idx == SQUASHFS_INVALID_FRAG) {
 		return sqsh_ceil(size, block);
 	} else {
@@ -84,10 +84,10 @@ sqsh_blocklist_init(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	bl->input_size	=	0;
 }
 
-sqfs_err
+sqsh_err
 sqsh_blocklist_next(struct sqsh_blocklist *bl)
 {
-	sqfs_err err;
+	sqsh_err err;
 	bool compressed;
 
 	err = SQFS_OK;
@@ -104,7 +104,7 @@ sqsh_blocklist_next(struct sqsh_blocklist *bl)
 	sqsh_data_header(bl->header, &compressed, &bl->input_size);
 
 	if (bl->started)
-		bl->pos += bl->fs->sb.block_size;
+		bl->pos += bl->ump->sb.block_size;
 	bl->started = true;
 
 	return SQFS_OK;
@@ -114,7 +114,7 @@ static bool
 sqsh_blockidx_indexable(struct sqsh_mount *ump, struct sqsh_inode *inode)
 {
 	size_t blocks = sqsh_blocklist_count(ump, inode);
-	size_t md_size = blocks * sizeof(sqsh_blocklist_entry);
+	size_t md_size = blocks * sizeof(uint32_t);
 	return md_size >= SQUASHFS_METADATA_SIZE;
 }
 
@@ -137,7 +137,7 @@ sqsh_blockidx_add(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	*out = NULL;
 
 	blocks = sqsh_blocklist_count(ump, inode);
-	md_size = blocks * sizeof(struct sqsh_blocklist_entry);
+	md_size = blocks * sizeof(uint32_t);
 	count = (inode->next.offset + md_size - 1)
 		/ SQUASHFS_METADATA_SIZE;
 	blockidx = malloc(count * sizeof(struct sqsh_blockidx_entry), M_SQSHBLKIDX,
@@ -149,9 +149,9 @@ sqsh_blockidx_add(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	while (bl.remain && i < count) {
 		sqsh_err err;
 		/* skip the first metadata block since its stored in inode */
-		if (bl.cur.offset < sizeof(struct sqsh_blocklist_entry) && !first) {
+		if (bl.cur.offset < sizeof(uint32_t) && !first) {
 			blockidx[i].data_block = bl.block + bl.input_size;
-			blockidx[i++].md_block = (uint32_t)(bl.cur.block - fs->sb.inode_table_start);
+			blockidx[i++].md_block = (uint32_t)(bl.cur.block - ump->sb.inode_table_start);
 		}
 		first = false;
 
@@ -171,11 +171,11 @@ sqsh_blockidx_blocklist(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	struct sqsh_blocklist *bl, off_t start)
 {
 	size_t block, metablock, skipped;
-	struct sqfs_blockidx_entry *blockidx, **bp;
-	sqsh_err err
+	struct sqsh_blockidx_entry *blockidx;
+	sqsh_err err;
 
-	struct sqsh_blocklist_init(fs, inode, bl);
-	block = (size_t)(start / fs->sb.block_size);
+	sqsh_blocklist_init(ump, inode, bl);
+	block = (size_t)(start / ump->sb.block_size);
 	/* fragment */
 	if (block > bl->remain) {
 		bl->remain = 0;
@@ -183,26 +183,26 @@ sqsh_blockidx_blocklist(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	}
 
 	/* Total blocks we need to skip */
-	metablock = (bl->cur.offset + block * sizeof(struct sqsh_blocklist_entry))
+	metablock = (bl->cur.offset + block * sizeof(uint32_t))
 		/ SQUASHFS_METADATA_SIZE;
 	if (metablock == 0)
 		return SQFS_OK;
 	if (!sqsh_blockidx_indexable(ump, inode))
 		return SQFS_OK;
 
-	err = sqsh_blockidx_add(ump, inode, &blockidx, bp);
+	err = sqsh_blockidx_add(ump, inode, &blockidx);
 	if (err != SQFS_OK) {
 		return err;
 	}
 
-	skipped = (metablock * SQUASHFS_METADATA_SIZE / sizeof(struct sqsh_blocklist_entry))
-		- (bl->cur.offset / sizeof(struct sqsh_blocklist_entry));
+	skipped = (metablock * SQUASHFS_METADATA_SIZE / sizeof(uint32_t))
+		- (bl->cur.offset / sizeof(uint32_t));
 
 	blockidx += metablock - 1;
-	bl->cur.block = blockidx->md_block + fs->sb.inode_table_start;
-	bl->cur.offset %= sizeof(struct sqsh_blocklist_entry);
+	bl->cur.block = blockidx->md_block + ump->sb.inode_table_start;
+	bl->cur.offset %= sizeof(uint32_t);
 	bl->remain -= skipped;
-	bl->pos = (uint64_t)skipped * fs->sb.block_size;
+	bl->pos = (uint64_t)skipped * ump->sb.block_size;
 	bl->block = blockidx->data_block;
 
 	/* free blockidx */
@@ -215,12 +215,12 @@ sqsh_err
 sqsh_frag_entry(struct sqsh_mount *ump, struct sqsh_fragment_entry *frag,
 	uint32_t idx)
 {
-	sqfs_err err;
+	sqsh_err err;
 
 	if (idx == SQUASHFS_INVALID_FRAG)
 		return SQFS_ERR;
 
-	err = sqsh_table_get(&ump->frag_table, ump, idx, frag);
+	err = sqsh_get_table(&ump->frag_table, ump, idx, frag);
 	swapendian_fragment_entry(frag);
 	return err;
 }
@@ -229,8 +229,8 @@ sqsh_err
 sqsh_frag_block(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	size_t *offset, size_t *size, struct sqsh_block **block)
 {
-	struct squashfs_fragment_entry frag;
-	sqfs_err err;
+	struct sqsh_fragment_entry frag;
+	sqsh_err err;
 
 	if (inode->type != VREG)
 		return SQFS_ERR;
@@ -244,7 +244,7 @@ sqsh_frag_block(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		return SQFS_ERR;
 
 	*offset = inode->xtra.reg.frag_off;
-	*size = inode->xtra.reg.file_size % fs->sb.block_size;
+	*size = inode->size % ump->sb.block_size;
 
 	return (err);
 }
@@ -253,14 +253,14 @@ sqsh_err
 sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	off_t start, off_t *size, void *buf)
 {
-	sqfs_err err;
+	sqsh_err err;
 	off_t file_size;
 	size_t block_size;
 	struct sqsh_blocklist bl;
 	size_t read_off;
 	char *buf_orig;
 
-	file_size = inode->xtra.reg.file_size;
+	file_size = inode->size;
 	block_size = ump->sb.block_size;
 
 	if (*size < 0 || start > file_size)
@@ -317,7 +317,7 @@ sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		if (block != NULL) {
 			memcpy(buf, (char*)block->data + data_off + read_off, take);
 			/* free the allocated block since we have no cache now */
-			sqsh_block_dispose(block);
+			sqsh_free_block(block);
 		} else {
 			memset(buf, 0, take);
 		}
