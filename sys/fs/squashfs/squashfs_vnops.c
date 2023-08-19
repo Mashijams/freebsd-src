@@ -440,7 +440,35 @@ static int
 squashfs_readlink(struct vop_readlink_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_inode *inode;
+	struct uio *uiop;
+	struct vnode *vp;
+	int error;
+	size_t want;
+	struct sqsh_block_run cur;
+	sqsh_err err;
+
+	uiop = ap->a_uio;
+	vp = ap->a_vp;
+
+	MPASS(uiop->uio_offset == 0);
+	MPASS(vp->v_type == VLNK);
+
+	inode = vp->v_data;
+
+	char buf[inode->size];
+
+	want = inode->size;
+	cur = inode->next;
+	err = sqsh_metadata_get(inode->ump, &cur, buf, want);
+	if (err != SQFS_OK)
+		return (EINVAL);
+
+	error = uiomove(buf,
+	    MIN(inode->size, uiop->uio_resid), uiop);
+
+	return (error);
 }
 
 static int
