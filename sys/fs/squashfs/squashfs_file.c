@@ -329,8 +329,9 @@ sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
 			break;
 	}
 
-	*size = (char*)buf - buf_orig;
-	return *size ? SQFS_OK : SQFS_ERR;
+	off_t data_read;
+	data_read = (char*)buf - buf_orig;
+	return data_read ? SQFS_OK : SQFS_ERR;
 }
 
 void

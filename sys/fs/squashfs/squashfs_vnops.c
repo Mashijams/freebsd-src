@@ -53,6 +53,7 @@
 #include <squashfs_mount.h>
 #include <squashfs_inode.h>
 #include <squashfs_dir.h>
+#include <squashfs_file.h>
 
 static int
 squashfs_open(struct vop_open_args *ap)
@@ -160,7 +161,36 @@ static int
 squashfs_read(struct vop_read_args *ap)
 {
 	TRACE("%s:",__func__);
-	return (EOPNOTSUPP);
+
+	struct sqsh_mount *ump;
+	struct sqsh_inode *inode;
+	struct uio *uiop;
+	struct vnode *vp;
+	size_t len;
+	off_t resid;
+	sqsh_err err;
+
+	uiop = ap->a_uio;
+	vp = ap->a_vp;
+
+	if (vp->v_type == VCHR || vp->v_type == VBLK)
+		return (EOPNOTSUPP);
+
+	if (vp->v_type != VREG)
+		return (EISDIR);
+
+	if (uiop->uio_offset < 0)
+		return (EINVAL);
+
+	inode = vp->v_data;
+	ump = inode->ump;
+
+	err = sqsh_read_file(ump, inode, uiop->uio_offset,
+			&uiop->uio_resid, uiop->uio_iov->iov_base);
+	if (err != SQFS_OK)
+		return (EINVAL);
+
+	return (0);
 }
 
 static int
