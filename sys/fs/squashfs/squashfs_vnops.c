@@ -166,6 +166,8 @@ squashfs_read(struct vop_read_args *ap)
 	struct sqsh_inode *inode;
 	struct uio *uiop;
 	struct vnode *vp;
+	off_t resid;
+	size_t len;
 	sqsh_err err;
 
 	uiop = ap->a_uio;
@@ -183,8 +185,26 @@ squashfs_read(struct vop_read_args *ap)
 	inode = vp->v_data;
 	ump = inode->ump;
 
-	err = sqsh_read_file(ump, inode, uiop->uio_offset,
-			&uiop->uio_resid, uiop->uio_iov->iov_base);
+	while ((resid = uiop->uio_resid) > 0) {
+		if (inode->size <= uiop->uio_offset)
+			break;
+		len = MIN(inode->size - uiop->uio_offset, resid);
+		if (len == 0)
+			break;
+		size_t orig_len;
+		orig_len = len;
+		char buf[len];
+
+		err = sqsh_read_file(ump, inode, uiop->uio_offset, &len, buf);
+		if (err != SQFS_OK)
+			break;
+
+		size_t data_read = orig_len - len;
+		int error = uiomove(buf, data_read, uiop);
+		if (error != 0)
+			return (error);
+	}
+
 	if (err != SQFS_OK)
 		return (EINVAL);
 
