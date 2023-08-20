@@ -54,6 +54,8 @@
 #include <squashfs_inode.h>
 #include <squashfs_block.h>
 
+static	MALLOC_DEFINE(M_SQUASHFSEXT, "SQUASHFS xattrs", "SQUASHFS Extended attributes");
+
 void	swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp);
 void	swapendian_xattr_id(struct sqsh_xattr_id *temp);
 void	swapendian_xattr_entry(struct sqsh_xattr_entry *temp);
@@ -220,6 +222,96 @@ sqsh_xattr_value(struct sqsh_xattr *x, void *buf)
 		x->c_next = c;
 		x->cursors |= CURS_NEXT;
 	}
+	return err;
+}
+
+static sqsh_err
+sqsh_xattr_find_prefix(const char *name, uint16_t *type)
+{
+	int i;
+	for (i = 0; i <= SQFS_XATTR_PREFIX_MAX; ++i) {
+		struct sqsh_prefix *p = &sqsh_xattr_prefixes[i];
+		if (strncmp(name, p->pref, p->len) == 0) {
+			*type = i;
+			return SQFS_OK;
+		}
+	}
+	return SQFS_ERR;
+}
+
+sqsh_err
+sqsh_xattr_find(struct sqsh_xattr *x, const char *name, bool *found)
+{
+	sqsh_err err;
+	char *cmp = NULL;
+	uint16_t type;
+	size_t len;
+
+	err = sqsh_xattr_find_prefix(name, &type);
+
+	if (err != SQFS_OK) {
+		*found = false;
+		return SQFS_OK;
+	}
+
+	name += sqsh_xattr_prefixes[type].len;
+	len = strlen(name);
+	cmp = malloc(len, M_SQUASHFSEXT, M_WAITOK | M_ZERO);
+
+	while (x->remain) {
+		err = sqsh_xattr_read(x);
+		if (err != SQFS_OK)
+			goto done;
+		if (x->type != type && x->entry.size != len)
+			continue;
+		err = sqsh_xattr_name(x, cmp, false);
+		if (err != SQFS_OK)
+			goto done;
+		if (strncmp(name, cmp, len) == 0) {
+			*found = true;
+			goto done;
+		}
+	}
+	*found = false;
+
+done:
+	free(cmp, M_SQUASHFSEXT);
+	return err;
+}
+
+sqsh_err
+sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	const char *name, void *buf, size_t *size)
+{
+	sqsh_err err;
+	bool found;
+
+	struct sqsh_xattr xattr;
+	err = sqsh_xattr_open(ump, inode, &xattr);
+	if (err != SQFS_OK)
+		return err;
+
+	found = false;
+	err = sqsh_xattr_find(&xattr, name, &found);
+	if (err != SQFS_OK)
+		return err;
+	if (!found) {
+		*size = 0;
+		return err;
+	}
+
+	size_t real;
+	err = sqsh_xattr_value_size(&xattr, &real);
+	if (err != SQFS_OK)
+		return err;
+
+	if (buf && *size >= real) {
+		err = sqsh_xattr_value(&xattr, buf);
+		if (err != SQFS_OK)
+			return err;
+	}
+
+	*size = real;
 	return err;
 }
 

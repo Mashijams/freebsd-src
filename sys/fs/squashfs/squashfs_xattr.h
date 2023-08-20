@@ -76,4 +76,10 @@ sqsh_err	sqsh_xattr_name(struct sqsh_xattr *x, char *name, bool prefix);
 sqsh_err	sqsh_xattr_value_size(struct sqsh_xattr *x, size_t *size);
 sqsh_err	sqsh_xattr_value(struct sqsh_xattr *x, void *buf);
 
+static sqsh_err	sqsh_xattr_find_prefix(const char *name, uint16_t *type);
+
+sqsh_err	sqsh_xattr_find(struct sqsh_xattr *x, const char *name, bool *found);
+sqsh_err	sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
+				const char *name, void *buf, size_t *size);
+
 #endif
