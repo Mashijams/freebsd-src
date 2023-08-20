@@ -7,7 +7,8 @@ SRCS=	\
 	squashfs_inode.c \
 	squashfs_io.c	\
 	squashfs_dir.c	\
-	squashfs_file.c
+	squashfs_file.c	\
+	squashfs_xattr.c
 
 SRCS+=	vnode_if.h
 CFLAGS+= -I/usr/include

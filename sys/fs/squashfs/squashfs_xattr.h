@@ -36,7 +36,7 @@ struct sqsh_prefix {
 	size_t		len;
 };
 
-struct sqsh_prefix sqsh_xattr_prefixes[] = {
+static struct sqsh_prefix sqsh_xattr_prefixes[] = {
 	{"user.", 5},
 	{"trusted.", 8},
 	{"security.", 9},

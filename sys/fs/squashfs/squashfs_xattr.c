@@ -53,13 +53,14 @@
 #include <squashfs_mount.h>
 #include <squashfs_inode.h>
 #include <squashfs_block.h>
+#include <squashfs_xattr.h>
 
 static	MALLOC_DEFINE(M_SQUASHFSEXT, "SQUASHFS xattrs", "SQUASHFS Extended attributes");
 
 void	swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp);
 void	swapendian_xattr_id(struct sqsh_xattr_id *temp);
 void	swapendian_xattr_entry(struct sqsh_xattr_entry *temp);
-void	swapendian_xattr_value(struct sqsh_xattr_val *temp)
+void	swapendian_xattr_value(struct sqsh_xattr_val *temp);
 
 sqsh_err
 sqsh_init_xattr(struct sqsh_mount *ump)
@@ -83,7 +84,7 @@ sqsh_init_xattr(struct sqsh_mount *ump)
 sqsh_err sqsh_xattr_open(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	struct sqsh_xattr *x)
 {
-	sqfs_err err;
+	sqsh_err err;
 
 	x->remain = 0;
 	if (ump->xattr_info.xattr_ids == 0 || inode->xattr == SQUASHFS_INVALID_XATTR)
@@ -181,7 +182,7 @@ sqsh_xattr_value_size(struct sqsh_xattr *x, size_t *size)
 	if (x->ool) {
 		uint64_t pos;
 		x->c_next = x->c_val;
-		err = sqsh_metadata_get(x->ump, &x->c_next, &pos, sizeof(pos))
+		err = sqsh_metadata_get(x->ump, &x->c_next, &pos, sizeof(pos));
 		if (err != SQFS_OK)
 			return err;
 		pos = le64toh(pos);
@@ -189,7 +190,7 @@ sqsh_xattr_value_size(struct sqsh_xattr *x, size_t *size)
 
 		sqsh_metadata_run_inode(&x->c_val, pos,
 			x->ump->xattr_info.xattr_table_start);
-		err = sqsh_metadata_get(x->ump, &x->c_val, &x->val, sizeof(x->val))
+		err = sqsh_metadata_get(x->ump, &x->c_val, &x->val, sizeof(x->val));
 		if (err != SQFS_OK)
 			return err;
 		swapendian_xattr_value(&x->val);

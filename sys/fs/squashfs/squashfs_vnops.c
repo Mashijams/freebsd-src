@@ -54,6 +54,7 @@
 #include <squashfs_inode.h>
 #include <squashfs_dir.h>
 #include <squashfs_file.h>
+#include <squashfs_xattr.h>
 
 static int
 squashfs_open(struct vop_open_args *ap)
