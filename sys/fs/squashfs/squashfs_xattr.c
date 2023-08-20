@@ -131,6 +131,12 @@ sqsh_xattr_read(struct sqsh_xattr *x)
 	return err;
 }
 
+size_t
+sqsh_xattr_name_size(struct sqsh_xattr *x)
+{
+	return x->entry.size + sqsh_xattr_prefixes[x->type].len;
+}
+
 void
 swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp)
 {

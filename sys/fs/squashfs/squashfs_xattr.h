@@ -70,4 +70,10 @@ sqsh_err sqsh_xattr_open(struct sqsh_mount *ump, struct sqsh_inode *inode,
 
 sqsh_err sqsh_xattr_read(struct sqsh_xattr *x);
 
+/* Helper functions on sqsh_xattr */
+size_t		sqsh_xattr_name_size(struct sqsh_xattr *x);
+sqsh_err	sqsh_xattr_name(struct sqsh_xattr *x, char *name, bool prefix);
+sqsh_err	sqsh_xattr_value_size(struct sqsh_xattr *x, size_t *size);
+sqsh_err	sqsh_xattr_value(struct sqsh_xattr *x, void *buf);
+
 #endif
