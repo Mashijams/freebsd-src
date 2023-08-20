@@ -54,3 +54,31 @@
 #include <squashfs_inode.h>
 #include <squashfs_block.h>
 
+void	swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp);
+
+sqsh_err
+sqsh_init_xattr(struct sqsh_mount *ump)
+{
+	off_t start;
+	size_t data_read;
+
+	start  = ump->sb.xattr_id_table_start;
+	if (start == SQUASHFS_INVALID_BLK)
+		return SQFS_OK;
+	data_read = sqsh_io_read_buf(ump, &ump->xattr_info,
+		sizeof(ump->xattr_info), start);
+	if (data_read != sizeof(ump->xattr_info))
+		return SQFS_ERR;
+	swapendian_xattr_id_table(&ump->xattr_info);
+	return sqsh_init_table(&ump->xattr_table, ump,
+		start + sizeof(ump->xattr_info), sizeof(struct sqsh_xattr_id),
+		ump->xattr_info.xattr_ids);
+}
+
+void
+swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp)
+{
+	temp->xattr_table_start	=	le64toh(temp->xattr_table_start);
+	temp->xattr_ids			=	le32toh(temp->xattr_ids);
+	temp->unused			=	le32toh(temp->unused);
+}

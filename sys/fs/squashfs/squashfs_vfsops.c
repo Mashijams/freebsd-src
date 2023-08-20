@@ -185,9 +185,12 @@ squashfs_init(struct sqsh_mount* ump)
 			goto export_table_fail;
 	}
 
-	TRACE("Table init() passed!");
+	error = sqsh_init_xattr(ump);
+	if (error != SQFS_OK)
+		goto xattrs_fail;
 
-	/* TODO : add checks for caches after implementing it */
+
+	TRACE("Table init() passed!");
 
 	/* Everything fine */
 	return (SQFS_OK);
@@ -206,7 +209,12 @@ export_table_fail:
 	sqsh_free_table(&ump->frag_table);
 	sqsh_free_table(&ump->export_table);
 	return (error);
-
+xattrs_fail:
+	sqsh_free_table(&ump->id_table);
+	sqsh_free_table(&ump->frag_table);
+	sqsh_free_table(&ump->export_table);
+	sqsh_free_table(&ump->xattr_table);
+	return (error);
 }
 
 /* VFS operations */
