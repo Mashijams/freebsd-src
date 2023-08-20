@@ -55,6 +55,8 @@
 #include <squashfs_block.h>
 
 void	swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp);
+void	swapendian_xattr_id(struct sqsh_xattr_id *temp);
+void	swapendian_xattr_entry(struct sqsh_xattr_entry *temp);
 
 sqsh_err
 sqsh_init_xattr(struct sqsh_mount *ump)
@@ -99,10 +101,55 @@ sqsh_err sqsh_xattr_open(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	return SQFS_OK;
 }
 
+sqsh_err
+sqsh_xattr_read(struct sqsh_xattr *x)
+{
+	sqsh_err err;
+
+	if (x->remain == 0)
+		return SQFS_ERR;
+
+	if (!(x->cursors & CURS_NEXT)) {
+		x->ool = false;
+		if ((err = sqsh_xattr_value(x, NULL)))
+			return err;
+	}
+
+	x->c_name = x->c_next;
+	err = sqsh_metadata_get(x->ump, &x->c_name, &x->entry, sizeof(x->entry));
+	if (err != SQFS_OK)
+		return err;
+	swapendian_xattr_entry(&x->entry);
+
+	x->type = x->entry.type & SQUASHFS_XATTR_PREFIX_MASK;
+	x->ool = x->entry.type & SQUASHFS_XATTR_VALUE_OOL;
+	if (x->type > SQFS_XATTR_PREFIX_MAX)
+		return SQFS_ERR;
+
+	--(x->remain);
+	x->cursors = 0;
+	return err;
+}
+
 void
 swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp)
 {
 	temp->xattr_table_start	=	le64toh(temp->xattr_table_start);
 	temp->xattr_ids			=	le32toh(temp->xattr_ids);
 	temp->unused			=	le32toh(temp->unused);
+}
+
+void
+swapendian_xattr_id(struct sqsh_xattr_id *temp)
+{
+	temp->xattr	=	le64toh(temp->xattr);
+	temp->count	=	le32toh(temp->count);
+	temp->size	=	le32toh(temp->size);
+}
+
+void
+swapendian_xattr_entry(struct sqsh_xattr_entry *temp)
+{
+	temp->type	=	le16toh(temp->type);
+	temp->size	=	le16toh(temp->size);
 }

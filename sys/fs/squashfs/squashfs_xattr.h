@@ -68,4 +68,6 @@ sqsh_err sqsh_init_xattr(struct sqsh_mount *ump);
 sqsh_err sqsh_xattr_open(struct sqsh_mount *ump, struct sqsh_inode *inode,
 			struct sqsh_xattr *x);
 
+sqsh_err sqsh_xattr_read(struct sqsh_xattr *x);
+
 #endif
