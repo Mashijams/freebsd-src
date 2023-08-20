@@ -199,6 +199,30 @@ sqsh_xattr_value_size(struct sqsh_xattr *x, size_t *size)
 	return err;
 }
 
+sqsh_err
+sqsh_xattr_value(struct sqsh_xattr *x, void *buf)
+{
+	sqsh_err err;
+	struct sqsh_block_run c;
+
+	if (!(x->cursors & CURS_VAL)) {
+		err = sqsh_xattr_value_size(x, NULL);
+		if (err != SQFS_OK)
+			return err;
+	}
+
+	c = x->c_val;
+	err = sqsh_metadata_get(x->ump, &c, buf, x->val.vsize);
+	if (err != SQFS_OK)
+		return err;
+
+	if (!x->ool) {
+		x->c_next = c;
+		x->cursors |= CURS_NEXT;
+	}
+	return err;
+}
+
 void
 swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp)
 {
