@@ -75,6 +75,30 @@ sqsh_init_xattr(struct sqsh_mount *ump)
 		ump->xattr_info.xattr_ids);
 }
 
+sqsh_err sqsh_xattr_open(struct sqsh_mount *ump, struct sqsh_inode *inode,
+	struct sqsh_xattr *x)
+{
+	sqfs_err err;
+
+	x->remain = 0;
+	if (ump->xattr_info.xattr_ids == 0 || inode->xattr == SQUASHFS_INVALID_XATTR)
+		return SQFS_OK;
+
+	err = sqsh_get_table(&ump->xattr_table, ump, inode->xattr,
+		&x->info);
+	if (err != SQFS_OK)
+		return SQFS_ERR;
+	swapendian_xattr_id(&x->info);
+
+	sqsh_metadata_run_inode(&x->c_next, x->info.xattr,
+		ump->xattr_info.xattr_table_start);
+
+	x->ump = ump;
+	x->remain = x->info.count;
+	x->cursors = CURS_NEXT;
+	return SQFS_OK;
+}
+
 void
 swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp)
 {

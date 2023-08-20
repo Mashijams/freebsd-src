@@ -31,6 +31,41 @@
 #ifndef SQUASHFS_XATTR_H
 #define SQUASHFS_XATTR_H
 
+struct sqsh_prefix {
+	const char	*pref;
+	size_t		len;
+};
+
+struct sqsh_prefix sqsh_xattr_prefixes[] = {
+	{"user.", 5},
+	{"trusted.", 8},
+	{"security.", 9},
+};
+
+typedef enum {
+	CURS_VSIZE	=	1,
+	CURS_VAL	=	2,
+	CURS_NEXT	=	4
+} sqsh_xattr_curs;
+
+struct sqsh_xattr {
+	struct sqsh_mount		*ump;
+	int						cursors;
+	struct sqsh_block_run	c_name;
+	struct sqsh_block_run	c_vsize;
+	struct sqsh_block_run	c_val;
+	struct sqsh_block_run	c_next;
+	size_t					remain;
+	struct sqsh_xattr_id	info;
+	uint16_t				type;
+	bool					ool;
+	struct sqsh_xattr_entry	entry;
+	struct sqsh_xattr_val	val;
+};
+
 sqsh_err sqsh_init_xattr(struct sqsh_mount *ump);
+
+sqsh_err sqsh_xattr_open(struct sqsh_mount *ump, struct sqsh_inode *inode,
+			struct sqsh_xattr *x);
 
 #endif
