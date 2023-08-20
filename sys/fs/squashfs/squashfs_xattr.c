@@ -137,6 +137,26 @@ sqsh_xattr_name_size(struct sqsh_xattr *x)
 	return x->entry.size + sqsh_xattr_prefixes[x->type].len;
 }
 
+sqsh_err
+sqsh_xattr_name(struct sqsh_xattr *x, char *name, bool prefix)
+{
+	sqsh_err err;
+
+	if (name && prefix) {
+		sqsh_prefix *p = &sqsh_xattr_prefixes[x->type];
+		memcpy(name, p->pref, p->len);
+		name += p->len;
+	}
+
+	x->c_vsize = x->c_name;
+	err = sqsh_metadata_get(x->ump, &x->c_vsize, name, x->entry.size);
+	if (err != SQFS_OK)
+		return err;
+
+	x->cursors |= CURS_VSIZE;
+	return err;
+}
+
 void
 swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp)
 {
