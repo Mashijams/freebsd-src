@@ -57,6 +57,7 @@
 void	swapendian_xattr_id_table(struct sqsh_xattr_id_table *temp);
 void	swapendian_xattr_id(struct sqsh_xattr_id *temp);
 void	swapendian_xattr_entry(struct sqsh_xattr_entry *temp);
+void	swapendian_xattr_value(struct sqsh_xattr_val *temp)
 
 sqsh_err
 sqsh_init_xattr(struct sqsh_mount *ump)
@@ -111,7 +112,8 @@ sqsh_xattr_read(struct sqsh_xattr *x)
 
 	if (!(x->cursors & CURS_NEXT)) {
 		x->ool = false;
-		if ((err = sqsh_xattr_value(x, NULL)))
+		err = sqsh_xattr_value(x, NULL);
+		if (err != SQFS_OK)
 			return err;
 	}
 
@@ -143,7 +145,7 @@ sqsh_xattr_name(struct sqsh_xattr *x, char *name, bool prefix)
 	sqsh_err err;
 
 	if (name && prefix) {
-		sqsh_prefix *p = &sqsh_xattr_prefixes[x->type];
+		struct sqsh_prefix *p = &sqsh_xattr_prefixes[x->type];
 		memcpy(name, p->pref, p->len);
 		name += p->len;
 	}
@@ -154,6 +156,46 @@ sqsh_xattr_name(struct sqsh_xattr *x, char *name, bool prefix)
 		return err;
 
 	x->cursors |= CURS_VSIZE;
+	return err;
+}
+
+sqsh_err
+sqsh_xattr_value_size(struct sqsh_xattr *x, size_t *size)
+{
+	sqsh_err err;
+
+	if (!(x->cursors & CURS_VSIZE)) {
+		err = sqsh_xattr_name(x, NULL, false);
+		if (err != SQFS_OK)
+			return err;
+	}
+
+	x->c_val = x->c_vsize;
+	err = sqsh_metadata_get(x->ump, &x->c_val, &x->val, sizeof(x->val));
+	if (err != SQFS_OK)
+		return err;
+	swapendian_xattr_value(&x->val);
+
+	if (x->ool) {
+		uint64_t pos;
+		x->c_next = x->c_val;
+		err = sqsh_metadata_get(x->ump, &x->c_next, &pos, sizeof(pos))
+		if (err != SQFS_OK)
+			return err;
+		pos = le64toh(pos);
+		x->cursors |= CURS_NEXT;
+
+		sqsh_metadata_run_inode(&x->c_val, pos,
+			x->ump->xattr_info.xattr_table_start);
+		err = sqsh_metadata_get(x->ump, &x->c_val, &x->val, sizeof(x->val))
+		if (err != SQFS_OK)
+			return err;
+		swapendian_xattr_value(&x->val);
+	}
+
+	if (size)
+		*size = x->val.vsize;
+	x->cursors |= CURS_VAL;
 	return err;
 }
 
@@ -178,4 +220,10 @@ swapendian_xattr_entry(struct sqsh_xattr_entry *temp)
 {
 	temp->type	=	le16toh(temp->type);
 	temp->size	=	le16toh(temp->size);
+}
+
+void
+swapendian_xattr_value(struct sqsh_xattr_val *temp)
+{
+	temp->vsize	=	le32toh(temp->vsize);
 }
