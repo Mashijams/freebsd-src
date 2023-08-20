@@ -113,6 +113,14 @@
 #define	LZ4_COMPRESSION		5
 #define	ZSTD_COMPRESSION	6
 
+/* Xattr types */
+#define	SQUASHFS_XATTR_USER				0
+#define	SQUASHFS_XATTR_TRUSTED			1
+#define	SQUASHFS_XATTR_SECURITY			2
+#define	SQUASHFS_XATTR_VALUE_OOL		256
+#define	SQUASHFS_XATTR_PREFIX_MASK		0xff
+
+
 struct sqsh_sb {
 	uint32_t		s_magic;
 	uint32_t		inodes;
@@ -281,6 +289,27 @@ struct sqsh_fragment_entry {
 	uint64_t		start_block;
 	uint32_t		size;
 	uint32_t		unused;
+};
+
+struct sqsh_xattr_entry {
+	uint16_t			type;
+	uint16_t			size;
+};
+
+struct sqsh_xattr_val {
+	uint32_t			vsize;
+};
+
+struct sqsh_xattr_id {
+	uint64_t			xattr;
+	uint32_t			count;
+	uint32_t			size;
+};
+
+struct sqsh_xattr_id_table {
+	uint64_t			xattr_table_start;
+	uint32_t			xattr_ids;
+	uint32_t			unused;
 };
 
 /* This struct handles tables which contains inodes, inode ID and fragments */

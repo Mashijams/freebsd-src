@@ -31,6 +31,6 @@
 #ifndef SQUASHFS_XATTR_H
 #define SQUASHFS_XATTR_H
 
-
+sqsh_err sqsh_init_xattr(struct sqsh_mount *ump);
 
 #endif
