@@ -274,7 +274,6 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 
 	assert(inode != NULL);
 
-	/* initialise all inode fields to 0 */
 	memset(inode, 0, sizeof(*inode));
 	inode->xattr = SQUASHFS_INVALID_XATTR;
 
@@ -300,6 +299,53 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 			return (err);
 		break;
 	}
+	case SQUASHFS_DIR_TYPE: {
+		err = sqsh_init_dir_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	case SQUASHFS_LDIR_TYPE: {
+		err = sqsh_init_ldir_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	case SQUASHFS_SYMLINK_TYPE:
+	case SQUASHFS_LSYMLINK_TYPE: {
+		err = sqsh_init_symlink_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	case SQUASHFS_BLKDEV_TYPE:
+	case SQUASHFS_CHRDEV_TYPE: {
+		err = sqsh_init_dev_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	case SQUASHFS_LBLKDEV_TYPE:
+	case SQUASHFS_LCHRDEV_TYPE: {
+		err = sqsh_init_ldev_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	case SQUASHFS_SOCKET_TYPE:
+	case SQUASHFS_FIFO_TYPE: {
+		err = sqsh_init_ipc_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
+	case SQUASHFS_LSOCKET_TYPE:
+	case SQUASHFS_LFIFO_TYPE: {
+		err = sqsh_init_lipc_inode(ump, inode);
+		if (err != SQFS_OK)
+			return (err);
+		break;
+	}
 	default:
 		return (SQFS_ERR);
 	}
@@ -320,7 +366,6 @@ sqsh_init_reg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 		return (err);
 	swapendian_reg_inode(&temp);
 
-	/* initialise inode reg fields */
 	inode->nlink				=	1;
 	inode->xtra.reg.start_block	=	temp.start_block;
 	inode->size					=	temp.file_size;
@@ -341,13 +386,142 @@ sqsh_init_lreg_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 		return (err);
 	swapendian_lreg_inode(&temp);
 
-	/* initialise inode lreg fields */
 	inode->nlink				=	temp.nlink;
 	inode->xtra.reg.start_block	=	temp.start_block;
 	inode->size					=	temp.file_size;
 	inode->xtra.reg.frag_idx	=	temp.fragment;
 	inode->xtra.reg.frag_off	=	temp.offset;
 	inode->xattr				=	temp.xattr;
+
+	return (SQFS_OK);
+}
+
+sqsh_err
+sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	struct sqsh_dir_inode temp;
+	sqsh_err err;
+
+	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return (err);
+	swapendian_dir_inode(&temp);
+
+	inode->nlink					=	temp.nlink;
+	inode->xtra.dir.start_block 	=	temp.start_block;
+	inode->xtra.dir.offset			=	temp.offset;
+	inode->size						=	temp.file_size;
+	inode->xtra.dir.idx_count		=	0;
+	inode->xtra.dir.parent_inode	=	temp.parent_inode;
+
+	return (SQFS_OK);
+}
+
+sqsh_err
+sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	struct sqsh_ldir_inode temp;
+	sqsh_err err;
+
+	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return (err);
+	swapendian_ldir_inode(&temp);
+
+	inode->nlink					=	temp.nlink;
+	inode->xtra.dir.start_block 	=	temp.start_block;
+	inode->xtra.dir.offset			=	temp.offset;
+	inode->size						=	temp.file_size;
+	inode->xtra.dir.idx_count		=	temp.i_count;
+	inode->xtra.dir.parent_inode	=	temp.parent_inode;
+	inode->xattr					=	temp.xattr;
+
+	return (SQFS_OK);
+}
+
+sqsh_err
+sqsh_init_symlink_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	struct sqsh_symlink_inode temp;
+	sqsh_err err;
+
+	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return (err);
+
+	inode->nlink				=	le32toh(temp.nlink);
+	inode->size					=	le32toh(temp.symlink_size);
+
+	return (SQFS_OK);
+}
+
+sqsh_err
+sqsh_init_dev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	struct sqsh_dev_inode temp;
+	sqsh_err err;
+
+	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return (err);
+
+	inode->size				=	0;
+	inode->nlink			=	le32toh(temp.nlink);
+	temp.rdev				=	le32toh(temp.rdev);
+	inode->xtra.dev.major	=	(temp.rdev >> 8) & 0xfff;
+	inode->xtra.dev.minor	=	(temp.rdev & 0xff) | ((temp.rdev >> 12) & 0xfff00);
+
+	return (SQFS_OK);
+}
+
+sqsh_err
+sqsh_init_ldev_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	struct sqsh_ldev_inode temp;
+	sqsh_err err;
+
+	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return (err);
+
+	inode->size				=	0;
+	inode->nlink			=	le32toh(temp.nlink);
+	inode->xattr			=	le32toh(temp.xattr);
+	temp.rdev				=	le32toh(temp.rdev);
+	inode->xtra.dev.major	=	(temp.rdev >> 8) & 0xfff;
+	inode->xtra.dev.minor	=	(temp.rdev & 0xff) | ((temp.rdev >> 12) & 0xfff00);
+
+	return (SQFS_OK);
+}
+
+sqsh_err
+sqsh_init_ipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode) {
+	struct sqsh_ipc_inode temp;
+	sqsh_err err;
+
+	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return (err);
+
+	inode->size				=	0;
+	inode->nlink			=	le32toh(temp.nlink);
+
+	return (SQFS_OK);
+}
+
+sqsh_err
+sqsh_init_lipc_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
+{
+	struct sqsh_lipc_inode temp;
+	sqsh_err err;
+
+	err = sqsh_metadata_get(ump, &inode->next, &temp, sizeof(temp));
+	if (err != SQFS_OK)
+		return (err);
+
+	inode->size				=	0;
+	inode->nlink			=	le32toh(temp.nlink);
+	inode->xattr			=	le32toh(temp.xattr);
 
 	return (SQFS_OK);
 }
@@ -396,5 +570,41 @@ swapendian_lreg_inode(struct sqsh_lreg_inode *temp)
 	temp->nlink			=	le32toh(temp->nlink);
 	temp->fragment		=	le32toh(temp->fragment);
 	temp->offset		=	le32toh(temp->offset);
+	temp->xattr			=	le32toh(temp->xattr);
+}
+
+void
+swapendian_dir_inode(struct sqsh_dir_inode *temp)
+{
+
+	temp->inode_type	=	le16toh(temp->inode_type);
+	temp->mode			=	le16toh(temp->mode);
+	temp->uid			=	le16toh(temp->uid);
+	temp->guid			=	le16toh(temp->guid);
+	temp->mtime			=	le32toh(temp->mtime);
+	temp->inode_number	=	le32toh(temp->inode_number);
+	temp->start_block	=	le32toh(temp->start_block);
+	temp->nlink			=	le32toh(temp->nlink);
+	temp->file_size		=	le16toh(temp->file_size);
+	temp->offset		=	le16toh(temp->offset);
+	temp->parent_inode	=	le32toh(temp->parent_inode);
+}
+
+void
+swapendian_ldir_inode(struct sqsh_ldir_inode *temp)
+{
+
+	temp->inode_type	=	le16toh(temp->inode_type);
+	temp->mode			=	le16toh(temp->mode);
+	temp->uid			=	le16toh(temp->uid);
+	temp->guid			=	le16toh(temp->guid);
+	temp->mtime			=	le32toh(temp->mtime);
+	temp->inode_number	=	le32toh(temp->inode_number);
+	temp->nlink			=	le32toh(temp->nlink);
+	temp->file_size		=	le32toh(temp->file_size);
+	temp->start_block	=	le32toh(temp->start_block);
+	temp->parent_inode	=	le32toh(temp->parent_inode);
+	temp->i_count		=	le16toh(temp->i_count);
+	temp->offset		=	le16toh(temp->offset);
 	temp->xattr			=	le32toh(temp->xattr);
 }
