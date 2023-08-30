@@ -143,7 +143,7 @@ static const struct sqsh_decompressor sqsh_zstd_decompressor = {
 static sqsh_err
 zstd_decompressor(void *input, size_t input_size, void *output, size_t *output_size)
 {
-	const size_t zstdout;
+	size_t zstdout;
 
 	zstdout = ZSTD_decompress(output, *output_size, input, input_size);
 	if (ZSTD_isError(zstdout))

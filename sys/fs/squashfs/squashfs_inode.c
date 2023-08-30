@@ -272,7 +272,7 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	struct sqsh_block_run cur;
 	sqsh_err err;
 
-	assert(inode != NULL);
+	KASSERT(inode != NULL, ("Inode: NULL"));
 
 	memset(inode, 0, sizeof(*inode));
 	inode->xattr = SQUASHFS_INVALID_XATTR;
@@ -285,6 +285,10 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		return (err);
 	swapendian_base_inode(&inode->base);
 	inode->type = sqsh_inode_type(inode->base.inode_type);
+
+	inode->vnode = NULL;
+	inode->ump = ump;
+	inode->ino_id = id;
 
 	switch (inode->base.inode_type) {
 	case SQUASHFS_REG_TYPE: {
@@ -414,6 +418,8 @@ sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->xtra.dir.idx_count		=	0;
 	inode->xtra.dir.parent_inode	=	temp.parent_inode;
 
+	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
+
 	return (SQFS_OK);
 }
 
@@ -435,6 +441,8 @@ sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->xtra.dir.idx_count		=	temp.i_count;
 	inode->xtra.dir.parent_inode	=	temp.parent_inode;
 	inode->xattr					=	temp.xattr;
+
+	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
 
 	return (SQFS_OK);
 }
