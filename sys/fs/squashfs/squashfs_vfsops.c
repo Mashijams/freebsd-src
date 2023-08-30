@@ -286,6 +286,8 @@ squashfs_mount(struct mount* mp)
 		return (error);
 	}
 
+	VOP_UNLOCK(vp);
+
 	/* Create squashfs mount */
 	ump = malloc(sizeof(struct sqsh_mount), M_SQUASHFSMNT,
 	    M_WAITOK | M_ZERO);

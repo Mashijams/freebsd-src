@@ -72,14 +72,14 @@ sqsh_io_read(struct sqsh_mount *ump, struct uio *uiop)
 
 	rl = vn_rangelock_rlock(ump->um_vp, off, off + len);
 	error = vn_lock(ump->um_vp, LK_SHARED);
-	if (error == 0 || error == 11) {
+	if (error == 0) {
 		error = VOP_READ(ump->um_vp, uiop, IO_DIRECT|IO_NODELOCKED,
 			uiop->uio_td->td_ucred);
 		VOP_UNLOCK(ump->um_vp);
 	}
 	vn_rangelock_unlock(ump->um_vp, rl);
 
-	return ( error == 0 || error == 11 ? SQFS_OK : SQFS_ERR );
+	return ( error != 0 ? SQFS_ERR : SQFS_OK );
 }
 
 /*
