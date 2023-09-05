@@ -476,15 +476,13 @@ static int
 squashfs_reclaim(struct vop_reclaim_args *ap)
 {
 	TRACE("%s:",__func__);
-	struct sqsh_inode *inode;
 	struct vnode *vp;
 
 	vp = ap->a_vp;
-	inode = vp->v_data;
 
 	vfs_hash_remove(vp);
 
-	inode->vnode = NULLVP;
+	free(vp->v_data, M_SQUASHFS_NODE);
 	vp->v_data = NULL;
 
 	TRACE("%s: completed",__func__);

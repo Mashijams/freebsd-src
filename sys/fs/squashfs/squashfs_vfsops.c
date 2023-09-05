@@ -57,8 +57,8 @@
 #include <squashfs_decompressor.h>
 #include <squashfs_xattr.h>
 
+MALLOC_DEFINE(M_SQUASHFS_NODE, "SQUASHFS inode", "SQUASHFS vnode private data");
 static	MALLOC_DEFINE(M_SQUASHFSMNT, "SQUASHFS mount", "SQUASHFS mount structure");
-static	MALLOC_DEFINE(M_SQUASHFS_NODE, "SQUASHFS inode", "SQUASHFS vnode private data");
 
 static	vfs_mount_t		squashfs_mount;
 static	vfs_unmount_t	squashfs_unmount;
