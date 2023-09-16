@@ -287,7 +287,7 @@ squashfs_readdir(struct vop_readdir_args *ap)
 	TRACE("%s:",__func__);
 
 	struct sqsh_mount *ump;
-	struct dirent cde;
+	struct dirent cde = { };
 	struct sqsh_inode *inode;
 	struct vnode *vp;
 	struct uio *uio;
@@ -320,6 +320,14 @@ squashfs_readdir(struct vop_readdir_args *ap)
 	if (uio->uio_offset == SQUASHFS_COOKIE_DOT) {
 		/* fake . entry */
 		cde.d_fileno = inode->ino_id;
+		/*
+		 * For some reason Dirent doesn't list an entry
+		 * with inode number 0, this is problem as squashfs
+		 * inode number could be 0.
+		 * So to overcome problem just use dummy inode number
+		 */
+		if (cde.d_fileno == 0)
+			cde.d_fileno = SQUASHFS_DUMMY_INODE_NO;
 		cde.d_type = DT_DIR;
 		cde.d_namlen = 1;
 		cde.d_name[0] = '.';
@@ -338,13 +346,25 @@ squashfs_readdir(struct vop_readdir_args *ap)
 
 	if (uio->uio_offset == SQUASHFS_COOKIE_DOTDOT) {
 		/* fake .. entry */
-		MPASS(inode->xtra.dir.parent_inode == ump->sb.inodes + 1);
 		/* Get inode number of parent inode */
 		uint64_t i_ino;
-		err = sqsh_export_inode(ump, inode->xtra.dir.parent_inode, &i_ino);
-		if (err != SQFS_OK)
-			return (EINVAL);
+		if (inode->xtra.dir.parent_inode == ump->sb.inodes + 1) {
+			i_ino = inode->ino_id;
+		} else {
+			err = sqsh_export_inode(ump, inode->xtra.dir.parent_inode, &i_ino);
+			if (err != SQFS_OK)
+				return (EINVAL);
+		}
+
 		cde.d_fileno = i_ino;
+		/*
+		 * For some reason Dirent doesn't list an entry
+		 * with inode number 0, this is problem as squashfs
+		 * inode number could be 0.
+		 * So to overcome problem just use dummy inode number
+		 */
+		if (cde.d_fileno == 0)
+			cde.d_fileno = SQUASHFS_DUMMY_INODE_NO;
 		cde.d_type = DT_DIR;
 		cde.d_namlen = 2;
 		cde.d_name[0] = '.';
@@ -371,6 +391,14 @@ squashfs_readdir(struct vop_readdir_args *ap)
 
 	for (;;) {
 		cde.d_fileno = entry.inode_id;
+		/*
+		 * For some reason Dirent doesn't list an entry
+		 * with inode number 0, this is problem as squashfs
+		 * inode number could be 0.
+		 * So to overcome problem just use dummy inode number
+		 */
+		if (cde.d_fileno == 0)
+			cde.d_fileno = SQUASHFS_DUMMY_INODE_NO;
 		enum vtype type;
 		type = sqsh_inode_type_from_id(ump, entry.inode_id);
 		switch (type) {
