@@ -219,6 +219,7 @@ squashfs_lookup(struct vop_cachedlookup_args *ap)
 
 	struct sqsh_mount *ump;
 	struct sqsh_inode *inode;
+	struct sqsh_inode *child_inode;
 	struct componentname *cnp;
 	struct vnode *dvp, **vpp;
 	int error;
@@ -238,17 +239,11 @@ squashfs_lookup(struct vop_cachedlookup_args *ap)
 
 	if (cnp->cn_flags & ISDOTDOT) {
 		/* Do not allow .. on the root node */
-		if (inode->xtra.dir.parent_inode == ump->sb.inodes + 1)
+		if (inode->xtra.dir.parent_inode == ump->sb.inodes + 1 || inode->xtra.dir.parent_inode == 0)
 			return (ENOENT);
 
-		/* Get inode number of parent inode */
-		uint64_t i_ino;
-		err = sqsh_export_inode(ump, inode->xtra.dir.parent_inode, &i_ino);
-		if (err != SQFS_OK)
-			return (EINVAL);
-
 		/* Allocate a new vnode on the matching entry */
-		error = vn_vget_ino(dvp, i_ino, cnp->cn_lkflags, vpp);
+		error = vn_vget_ino(dvp, inode->parent_id, cnp->cn_lkflags, vpp);
 		if (error != 0)
 			return (error);
 	} else if (cnp->cn_namelen == 1 && cnp->cn_nameptr[0] == '.') {
@@ -272,6 +267,8 @@ squashfs_lookup(struct vop_cachedlookup_args *ap)
 		error = VFS_VGET(ump->um_mountp, entry.inode_id, cnp->cn_lkflags, vpp);
 		if (error != 0)
 			return (error);
+		child_inode = (*vpp)->v_data;
+		child_inode->parent_id  = inode->ino_id;
 	}
 
 	/* Store the result the the cache if MAKEENTRY is specified in flags */
@@ -347,16 +344,8 @@ squashfs_readdir(struct vop_readdir_args *ap)
 	if (uio->uio_offset == SQUASHFS_COOKIE_DOTDOT) {
 		/* fake .. entry */
 		/* Get inode number of parent inode */
-		uint64_t i_ino;
-		if (inode->xtra.dir.parent_inode == ump->sb.inodes + 1) {
-			i_ino = inode->ino_id;
-		} else {
-			err = sqsh_export_inode(ump, inode->xtra.dir.parent_inode, &i_ino);
-			if (err != SQFS_OK)
-				return (EINVAL);
-		}
 
-		cde.d_fileno = i_ino;
+		cde.d_fileno = inode->parent_id;
 		/*
 		 * For some reason Dirent doesn't list an entry
 		 * with inode number 0, this is problem as squashfs

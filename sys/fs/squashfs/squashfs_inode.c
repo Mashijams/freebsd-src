@@ -217,11 +217,13 @@ sqsh_verify_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	/*
 	 * If inode type is directory then check for parent inode.
 	 * Note that we add +1 because for root inode parent_inode
-	 * is total inodes + 1
+	 * is total inodes + 1.
+	 * For some squashfs archives it is 0 too.
 	 */
 	if (inode->base.inode_type == SQUASHFS_DIR_TYPE) {
-		if (inode->xtra.dir.parent_inode < SQUASHFS_INODE_MIN_COUNT
+		if ((inode->xtra.dir.parent_inode < SQUASHFS_INODE_MIN_COUNT
 			|| inode->xtra.dir.parent_inode > ump->sb.inodes + 1)
+			&& inode->xtra.dir.parent_inode != 0)
 			return (SQFS_ERR);
 	}
 
@@ -289,6 +291,7 @@ sqsh_get_inode(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	inode->vnode = NULL;
 	inode->ump = ump;
 	inode->ino_id = id;
+	inode->parent_id = 0;
 
 	switch (inode->base.inode_type) {
 	case SQUASHFS_REG_TYPE: {

@@ -65,6 +65,7 @@ struct sqsh_inode {
 	} xtra;
 
 	uint64_t				ino_id;
+	uint64_t				parent_id;
 	struct vnode			*vnode;
 	struct sqsh_mount		*ump;
 };
