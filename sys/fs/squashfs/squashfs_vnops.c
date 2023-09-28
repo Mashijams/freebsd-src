@@ -192,18 +192,10 @@ squashfs_read(struct vop_read_args *ap)
 		len = MIN(inode->size - uiop->uio_offset, resid);
 		if (len == 0)
 			break;
-		size_t orig_len;
-		orig_len = len;
-		char buf[len];
 
-		err = sqsh_read_file(ump, inode, uiop->uio_offset, &len, buf);
+		err = sqsh_read_file(ump, inode, uiop->uio_offset, &len, uiop);
 		if (err != SQFS_OK)
 			break;
-
-		size_t data_read = orig_len - len;
-		int error = uiomove(buf, data_read, uiop);
-		if (error != 0)
-			return (error);
 	}
 
 	if (err != SQFS_OK)
@@ -543,6 +535,8 @@ squashfs_strategy(struct vop_strategy_args *ap)
 	off_t off;
 	size_t len;
 	int error;
+	struct uio auio;
+	struct iovec iov;
 	sqsh_err err;
 
 	error = 0;
@@ -553,6 +547,8 @@ squashfs_strategy(struct vop_strategy_args *ap)
 	MPASS(bp->b_bcount > 0);
 	MPASS(bp->b_bufsize >= bp->b_bcount);
 
+	iov.iov_base = bp->b_data;
+	iov.iov_len = bp->b_bcount;
 	inode = vp->v_data;
 	ump = inode->ump;
 	off = bp->b_iooffset;
@@ -566,7 +562,15 @@ squashfs_strategy(struct vop_strategy_args *ap)
 	if (off + len > inode->size)
 		len = inode->size - off;
 
-	err = sqsh_read_file(ump, inode, off, &bp->b_resid, bp->b_data);
+	auio.uio_iov = &iov;
+	auio.uio_iovcnt = 1;
+	auio.uio_offset = off;
+	auio.uio_resid = len;
+	auio.uio_segflg = UIO_SYSSPACE;
+	auio.uio_rw = UIO_READ;
+	auio.uio_td = curthread;
+
+	err = sqsh_read_file(ump, inode, off, &bp->b_resid, &auio);
 	if (err != SQFS_OK) {
 		error = EINVAL;
 		goto out;

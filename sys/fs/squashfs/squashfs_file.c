@@ -251,15 +251,17 @@ sqsh_frag_block(struct sqsh_mount *ump, struct sqsh_inode *inode,
 
 sqsh_err
 sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
-	off_t start, off_t *size, void *buf)
+	off_t start, off_t *size, struct uio *uiop)
 {
 	sqsh_err err;
 	off_t file_size;
 	size_t block_size;
 	struct sqsh_blocklist bl;
 	size_t read_off;
-	char *buf_orig;
+	off_t data_read;
+	int error;
 
+	data_read = 0;
 	file_size = inode->size;
 	block_size = ump->sb.block_size;
 
@@ -275,7 +277,6 @@ sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		return err;
 
 	read_off = start % block_size;
-	buf_orig = buf;
 	while (*size > 0) {
 		struct sqsh_block *block;
 		size_t data_off, data_size;
@@ -315,23 +316,25 @@ sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		if (take > *size)
 			take = (size_t)(*size);
 		if (block != NULL) {
-			memcpy(buf, (char*)block->data + data_off + read_off, take);
+			error = uiomove((char*)block->data + data_off + read_off, take, uiop);
+			if (error != 0)
+				return SQFS_ERR;
 			/* free the allocated block since we have no cache now */
 			sqsh_free_block(block);
 		} else {
-			memset(buf, 0, take);
+			error = uiomove(__DECONST(void *, zero_region),
+			    take, uiop);
+			if (error != 0)
+				return SQFS_ERR;
 		}
 		read_off = 0;
 		*size -= take;
-		buf = (char*)buf + take;
+		data_read += take;
 
 		if (fragment)
 			break;
 	}
 
-	off_t data_read;
-	data_read = (char*)buf - buf_orig;
-	buf = buf_orig;
 	return data_read ? SQFS_OK : SQFS_ERR;
 }
 

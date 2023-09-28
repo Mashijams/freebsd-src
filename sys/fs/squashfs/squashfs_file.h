@@ -67,6 +67,6 @@ sqsh_err	sqsh_frag_block(struct sqsh_mount *ump, struct sqsh_inode *inode,
 				size_t *offset, size_t *size, struct sqsh_block **block);
 
 sqsh_err	sqsh_read_file(struct sqsh_mount *ump, struct sqsh_inode *inode,
-				off_t start, off_t *size, void *buf);
+				off_t start, off_t *size, struct uio *uiop);
 
 #endif
