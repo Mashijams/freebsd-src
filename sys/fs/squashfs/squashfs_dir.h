@@ -31,15 +31,6 @@
 #ifndef SQUASHFS_DIR_H
 #define SQUASHFS_DIR_H
 
-struct sqsh_dir_entry {
-	uint64_t	inode_id;
-	uint32_t	inode_number;
-	char		name[100];
-	size_t		name_size;
-	off_t		offset;
-	off_t		next_offset;
-};
-
 /* Helper for sqsh_dir_lookup */
 struct sqsh_dir_ff_name_t {
 	const char	*cmp;

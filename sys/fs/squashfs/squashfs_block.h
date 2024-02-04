@@ -48,6 +48,15 @@ struct sqsh_dir {
 	struct sqsh_dir_header	header;
 };
 
+struct sqsh_dir_entry {
+	uint64_t	inode_id;
+	uint32_t	inode_number;
+	char		name[100];
+	size_t		name_size;
+	off_t		offset;
+	off_t		next_offset;
+};
+
 /* Helper functions to check if metadata/data block is compressed and its size */
 void		sqsh_metadata_header(uint16_t hdr, bool *compressed, uint16_t *size);
 void		sqsh_data_header(uint32_t hdr, bool *compressed, uint32_t *size);

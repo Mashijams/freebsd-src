@@ -422,6 +422,7 @@ sqsh_init_dir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->xtra.dir.parent_inode	=	temp.parent_inode;
 
 	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
+	memset(&inode->xtra.dir.entry, 0, sizeof(struct sqsh_dir_entry));
 
 	return (SQFS_OK);
 }
@@ -446,6 +447,7 @@ sqsh_init_ldir_inode(struct sqsh_mount *ump, struct sqsh_inode *inode)
 	inode->xattr					=	temp.xattr;
 
 	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
+	memset(&inode->xtra.dir.entry, 0, sizeof(struct sqsh_dir_entry));
 
 	return (SQFS_OK);
 }

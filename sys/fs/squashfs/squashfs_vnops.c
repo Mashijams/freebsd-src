@@ -280,7 +280,6 @@ squashfs_readdir(struct vop_readdir_args *ap)
 	struct sqsh_inode *inode;
 	struct vnode *vp;
 	struct uio *uio;
-	struct sqsh_dir_entry entry;
 	int *eofflag;
 	uint64_t **cookies;
 	int *ncookies;
@@ -359,19 +358,19 @@ squashfs_readdir(struct vop_readdir_args *ap)
 		if (error)
 			return (error);
 		/* next is first child */
-		err = sqsh_dir_getnext(ump, &inode->xtra.dir.d, &entry);
+		err = sqsh_dir_getnext(ump, &inode->xtra.dir.d, &inode->xtra.dir.entry);
 		if (err == SQFS_END_OF_DIRECTORY)
 			goto done;
 		if (err != SQFS_OK) {
 			error = EINVAL;
 			goto done;
 		}
-		uio->uio_offset = entry.inode_id;
+		uio->uio_offset = inode->xtra.dir.entry.inode_id;
 		ndirents++;
 	}
 
 	for (;;) {
-		cde.d_fileno = entry.inode_id;
+		cde.d_fileno = inode->xtra.dir.entry.inode_id;
 		/*
 		 * For some reason Dirent doesn't list an entry
 		 * with inode number 0, this is problem as squashfs
@@ -381,7 +380,7 @@ squashfs_readdir(struct vop_readdir_args *ap)
 		if (cde.d_fileno == 0)
 			cde.d_fileno = SQUASHFS_DUMMY_INODE_NO;
 		enum vtype type;
-		type = sqsh_inode_type_from_id(ump, entry.inode_id);
+		type = sqsh_inode_type_from_id(ump, inode->xtra.dir.entry.inode_id);
 		switch (type) {
 		case VBLK:
 			cde.d_type = DT_BLK;
@@ -404,10 +403,10 @@ squashfs_readdir(struct vop_readdir_args *ap)
 		default:
 			panic("%s: inode_type %d\n", __func__, type);
 		}
-		cde.d_namlen = entry.name_size;
-		MPASS(entry.name_size < sizeof(cde.d_name));
-		(void)memcpy(cde.d_name, entry.name, entry.name_size);
-		cde.d_name[entry.name_size] = '\0';
+		cde.d_namlen = inode->xtra.dir.entry.name_size;
+		MPASS(inode->xtra.dir.entry.name_size < sizeof(cde.d_name));
+		(void)memcpy(cde.d_name, inode->xtra.dir.entry.name, inode->xtra.dir.entry.name_size);
+		cde.d_name[inode->xtra.dir.entry.name_size] = '\0';
 		cde.d_reclen = GENERIC_DIRSIZ(&cde);
 		if (cde.d_reclen > uio->uio_resid)
 			goto full;
@@ -417,14 +416,14 @@ squashfs_readdir(struct vop_readdir_args *ap)
 			goto done;
 		ndirents++;
 		/* next sibling */
-		err = sqsh_dir_getnext(ump, &inode->xtra.dir.d, &entry);
+		err = sqsh_dir_getnext(ump, &inode->xtra.dir.d, &inode->xtra.dir.entry);
 		if (err == SQFS_END_OF_DIRECTORY)
 			goto done;
 		if (err != SQFS_OK) {
 			error = EINVAL;
 			goto done;
 		}
-		uio->uio_offset = entry.inode_id;
+		uio->uio_offset = inode->xtra.dir.entry.inode_id;
 	}
 
 full:
@@ -432,11 +431,12 @@ full:
 		error = (ndirents == 0) ? EINVAL : 0;
 done:
 	TRACE("%s: %u entries written\n", __func__, ndirents);
-	/* Restart the directory */
-	sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
 
-	if (err == SQFS_END_OF_DIRECTORY)
+	if (err == SQFS_END_OF_DIRECTORY) {
 		uio->uio_offset = SQUASHFS_COOKIE_EOF;
+		/* Restart the directory */
+		sqsh_dir_init(ump, inode, &inode->xtra.dir.d);
+	}
 
 	if (eofflag != NULL) {
 		TRACE("%s: Setting EOF flag\n", __func__);

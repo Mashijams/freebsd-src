@@ -56,11 +56,12 @@ struct sqsh_inode {
 			uint32_t		frag_off;
 		} reg;
 		struct {
-			uint32_t		start_block;
-			uint16_t		offset;
-			uint16_t		idx_count;
-			uint32_t		parent_inode;
-			struct sqsh_dir	d;
+			uint32_t				start_block;
+			uint16_t				offset;
+			uint16_t				idx_count;
+			uint32_t				parent_inode;
+			struct sqsh_dir			d;
+			struct sqsh_dir_entry	entry;
 		} dir;
 	} xtra;
 
