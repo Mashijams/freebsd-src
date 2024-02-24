@@ -609,6 +609,29 @@ squashfs_vptofh(struct vop_vptofh_args *ap)
 	return (0);
 }
 
+static int
+squashfs_deleteextattr(struct vop_deleteextattr_args *ap)
+{
+	return (EOPNOTSUPP);
+}
+
+static int
+squashfs_getextattr(struct vop_getextattr_args *ap)
+{
+	return (EOPNOTSUPP);
+}
+
+static int
+squashfs_listextattr(struct vop_listextattr_args *ap)
+{
+	return (EOPNOTSUPP);
+}
+
+static int
+squashfs_setextattr(struct vop_setextattr_args *ap)
+{
+	return (EOPNOTSUPP);
+}
 
 struct vop_vector squashfs_vnodeops = {
 	.vop_default		=	&default_vnodeops,
@@ -626,6 +649,10 @@ struct vop_vector squashfs_vnodeops = {
 	.vop_reclaim		=	squashfs_reclaim,
 	.vop_strategy		=	squashfs_strategy,
 	.vop_vptofh			=	squashfs_vptofh,
+	.vop_deleteextattr	=	squashfs_deleteextattr,
+	.vop_getextattr		=	squashfs_getextattr,
+	.vop_listextattr	=	squashfs_listextattr,
+	.vop_setextattr		=	squashfs_setextattr,
 };
 
 VFS_VOP_VECTOR_REGISTER(squashfs_vnodeops);
