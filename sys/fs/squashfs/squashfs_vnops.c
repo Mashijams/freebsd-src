@@ -610,25 +610,41 @@ squashfs_vptofh(struct vop_vptofh_args *ap)
 }
 
 static int
-squashfs_deleteextattr(struct vop_deleteextattr_args *ap)
-{
-	return (EOPNOTSUPP);
-}
-
-static int
 squashfs_getextattr(struct vop_getextattr_args *ap)
 {
-	return (EOPNOTSUPP);
+	TRACE("%s:",__func__);
+
+	struct vnode *vp;
+	struct sqsh_inode *inode;
+	struct sqsh_mount *ump;
+	sqsh_err err;
+	int error;
+
+	vp = ap->a_vp;
+	inode = vp->v_data;
+	ump = inode->ump;
+
+	error = extattr_check_cred(ap->a_vp, ap->a_attrnamespace,
+	    ap->a_cred, ap->a_td, VREAD);
+
+	if (error != 0)
+		return (error);
+
+	if (ap->a_size != NULL)
+		*ap->a_size = 0;
+
+	error = ENOATTR;
+
+	err = sqsh_xattr_lookup(ump, inode, ap->a_name, ap->a_uio, ap->a_size);
+
+	if (err != SQFS_OK || ap->a_size == 0)
+		return (error);
+
+	return (0);
 }
 
 static int
 squashfs_listextattr(struct vop_listextattr_args *ap)
-{
-	return (EOPNOTSUPP);
-}
-
-static int
-squashfs_setextattr(struct vop_setextattr_args *ap)
 {
 	return (EOPNOTSUPP);
 }
@@ -649,10 +665,8 @@ struct vop_vector squashfs_vnodeops = {
 	.vop_reclaim		=	squashfs_reclaim,
 	.vop_strategy		=	squashfs_strategy,
 	.vop_vptofh			=	squashfs_vptofh,
-	.vop_deleteextattr	=	squashfs_deleteextattr,
 	.vop_getextattr		=	squashfs_getextattr,
 	.vop_listextattr	=	squashfs_listextattr,
-	.vop_setextattr		=	squashfs_setextattr,
 };
 
 VFS_VOP_VECTOR_REGISTER(squashfs_vnodeops);

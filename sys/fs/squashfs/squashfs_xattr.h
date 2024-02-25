@@ -80,6 +80,6 @@ static sqsh_err	sqsh_xattr_find_prefix(const char *name, uint16_t *type);
 
 sqsh_err	sqsh_xattr_find(struct sqsh_xattr *x, const char *name, bool *found);
 sqsh_err	sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
-				const char *name, void *buf, size_t *size);
+				const char *name, struct uio *uio, size_t *size);
 
 #endif

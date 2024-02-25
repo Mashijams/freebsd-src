@@ -282,10 +282,11 @@ done:
 
 sqsh_err
 sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
-	const char *name, void *buf, size_t *size)
+	const char *name, struct uio *uio, size_t *size)
 {
 	sqsh_err err;
 	bool found;
+	char *buf = NULL;
 
 	struct sqsh_xattr xattr;
 	err = sqsh_xattr_open(ump, inode, &xattr);
@@ -306,13 +307,19 @@ sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	if (err != SQFS_OK)
 		return err;
 
-	if (buf && *size >= real) {
+	buf = malloc(real, M_SQUASHFSEXT, M_WAITOK | M_ZERO);
+
+	if (buf) {
 		err = sqsh_xattr_value(&xattr, buf);
-		if (err != SQFS_OK)
+		if (err != SQFS_OK) {
+			free(buf, M_SQUASHFSEXT);
 			return err;
+		}
 	}
 
 	*size = real;
+	uiomove(buf, real, uio);
+	free(buf, M_SQUASHFSEXT);
 	return err;
 }
 
