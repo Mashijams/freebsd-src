@@ -318,7 +318,9 @@ sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	}
 
 	*size = real;
-	uiomove(buf, real, uio);
+	if (uiomove(buf, real, uio) != 0)
+		err = SQFS_ERR;
+
 	free(buf, M_SQUASHFSEXT);
 	return err;
 }
