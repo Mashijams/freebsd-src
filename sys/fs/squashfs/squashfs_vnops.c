@@ -637,7 +637,7 @@ squashfs_getextattr(struct vop_getextattr_args *ap)
 
 	err = sqsh_xattr_lookup(ump, inode, ap->a_name, ap->a_uio, ap->a_size);
 
-	if (err != SQFS_OK || ap->a_size == 0)
+	if (err != SQFS_OK || (ap->a_size != NULL && ap->a_size == 0))
 		return (error);
 
 	return (0);
@@ -646,7 +646,55 @@ squashfs_getextattr(struct vop_getextattr_args *ap)
 static int
 squashfs_listextattr(struct vop_listextattr_args *ap)
 {
-	return (EOPNOTSUPP);
+	TRACE("%s:",__func__);
+
+	struct vnode *vp;
+	struct sqsh_inode *inode;
+	struct sqsh_mount *ump;
+	struct uio *uio;
+	sqsh_xattr attr;
+	sqsh_err err;
+	int error;
+
+	vp = ap->a_vp;
+	inode = vp->v_data;
+	ump = inode->ump;
+	uio = ap->a_uio;
+
+	error = extattr_check_cred(ap->a_vp, ap->a_attrnamespace,
+	    ap->a_cred, ap->a_td, VREAD);
+
+	if (error != 0)
+		return (error);
+
+	if (ap->a_size != NULL)
+		*ap->a_size = 0;
+
+	err = sqsh_xattr_open(ump, inode, &attr);
+	if (err != SQFS_OK)
+		return (ENOATTR);
+	
+	while ((err = sqsh_xattr_read(&attr)) == SQFS_OK) {
+		size_t name_len = sqsh_xattr_name_size(&attr);
+		char name[name_len+1];
+		name[0] = name_len;
+
+		if (*size != NULL)
+			*size += name_len + 1;
+
+		err = sqsh_xattr_name(&attr, name + 1, false);
+		if (err != SQFS_OK)
+			return (ENOATTR);
+
+		error = uiomove(name,name_len + 1, uio);
+		if (error != 0)
+			return (error);
+	}
+
+	if (err == SQFS_ERR)
+		return (ENOATTR);
+
+	return (0);
 }
 
 struct vop_vector squashfs_vnodeops = {

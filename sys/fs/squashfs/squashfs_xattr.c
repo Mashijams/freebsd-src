@@ -111,7 +111,7 @@ sqsh_xattr_read(struct sqsh_xattr *x)
 	sqsh_err err;
 
 	if (x->remain == 0)
-		return SQFS_ERR;
+		return SQFS_END_OF_DIRECTORY;
 
 	if (!(x->cursors & CURS_NEXT)) {
 		x->ool = false;
@@ -139,7 +139,7 @@ sqsh_xattr_read(struct sqsh_xattr *x)
 size_t
 sqsh_xattr_name_size(struct sqsh_xattr *x)
 {
-	return x->entry.size + sqsh_xattr_prefixes[x->type].len;
+	return x->entry.size;
 }
 
 sqsh_err
@@ -298,7 +298,8 @@ sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
 	if (err != SQFS_OK)
 		return err;
 	if (!found) {
-		*size = 0;
+		if (size != NULL)
+			*size = 0;
 		return err;
 	}
 
@@ -317,7 +318,8 @@ sqsh_xattr_lookup(struct sqsh_mount *ump, struct sqsh_inode *inode,
 		}
 	}
 
-	*size = real;
+	if (size != NULL)
+		*size = real;
 	if (uiomove(buf, real, uio) != 0)
 		err = SQFS_ERR;
 
